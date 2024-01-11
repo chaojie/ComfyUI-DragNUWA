@@ -1,0 +1,45 @@
+{
+  "1": {
+    "inputs": {
+      "ckpt_name": "drag_nuwa_svd.pth",
+      "height": 320,
+      "width": 576,
+      "model_length": 14
+    },
+    "class_type": "Load CheckPoint DragNUWA"
+  },
+  "6": {
+    "inputs": {
+      "tracking_points": "[[[275, 27], [383, 40], [338, 144], [495, 242], [91, 107], [148, 209]], [[438, 85]]]",
+      "inference_batch_size": 1,
+      "motion_bucket_id": 4,
+      "model": [
+        "1",
+        0
+      ],
+      "image": [
+        "7",
+        0
+      ]
+    },
+    "class_type": "DragNUWA Run"
+  },
+  "7": {
+    "inputs": {
+      "image": "1poet.jpeg",
+      "image_data": "",
+      "upload": "image"
+    },
+    "class_type": "LoadImage //Inspire"
+  },
+  "8": {
+    "inputs": {
+      "filename_prefix": "dragnuwa/dragnuwa",
+      "images": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "SaveImage"
+  }
+}

@@ -1,0 +1,283 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>TRAJ MOTION DESIGNER</title>
+</head>
+
+<body>
+  <input type="file" id="inputFile" accept="image/*" />
+  Click on canvas to draw traj<br/>
+  <canvas id="canvas" height="320" width="576" style="border:1px dotted gray;"></canvas>
+  <br/>
+  Results:<br/>
+  <textarea id="traj" style="width:256px;height:128px;" placeholder="points"></textarea><br/>
+  <a href="draw.html">Traj tool</a>
+  <script type="module">
+	import { io } from "https://cdn.socket.io/4.7.3/socket.io.esm.min.js";
+
+	var roomid=new Date().getTime();
+	var canvas,ctx;
+	var socket = io();
+	socket.on('connect', function() {
+		socket.emit('server_reconnect', {roomid: roomid});
+	});
+	canvas = document.getElementById('canvas');
+
+	if (canvas.getContext)
+		ctx = canvas.getContext('2d');
+
+	socket.on("server_response", function (msg,ack) {
+		console.log(msg);
+		//接收到后端发送过来的消息
+		var b64img = msg.b64img;
+		if(!b64img)return;
+
+		var image = new Image();
+		image.src = 'data:image/jpeg;base64,' + b64img;
+
+		image.onload=function(){
+			ctx.drawImage(image,0,0,576,320);
+		};
+	});
+
+		var inputNode = document.querySelector("#inputFile");
+		var imageNode = document.createElement('img');
+		// Variables for referencing the canvas and 2dcanvas context
+
+		// Variables to keep track of the mouse position and left-button status
+		var mouseX,mouseY,moving, mouseDown=0;
+
+		// Variables to keep track of the touch position
+		var touchX,touchY;
+
+		var userDrawnPixels = [];
+
+		// Get the touch position relative to the top-left of the canvas
+		// When we get the raw values of pageX and pageY below, they take into account the scrolling on the page
+		// but not the position relative to our target div. We'll adjust them using "target.offsetLeft" and
+		// "target.offsetTop" to get the correct values in relation to the top left of the canvas.
+		function getTouchPos(e) {
+				if (!e)
+				    var e = event;
+
+				if(e.touches) {
+				    if (e.touches.length == 1) { // Only deal with one finger
+				        var touch = e.touches[0]; // Get the information for finger #1
+				        touchX=touch.pageX-touch.target.offsetLeft;
+				        touchY=touch.pageY-touch.target.offsetTop;
+				    }
+				}
+		}
+
+		// Set-up the canvas and add our event handlers after the page has loaded
+		function init() {
+				// Get the specific canvas element from the HTML document
+				canvas = document.getElementById('canvas');
+
+				canvas.focus();
+
+				canvas.width  = 576;
+				canvas.height = 320;
+
+				// If the browser supports the canvas tag, get the 2d drawing context for this canvas
+				if (canvas.getContext)
+				    ctx = canvas.getContext('2d');
+
+				// Check that we have a valid context to draw on/with before adding event handlers
+				if (ctx) {
+				    // React to mouse events on the canvas, and mouseup on the entire document
+				    canvas.addEventListener('mousedown', sketchpad_mouseDown, false);
+				    canvas.addEventListener('mousemove', sketchpad_mouseMove, false);
+				    canvas.addEventListener('mouseup', mouseOrTouchUp, false);
+
+				    // React to touch events on the canvas
+				    canvas.addEventListener('touchstart', sketchpad_touchStart, false);
+				    canvas.addEventListener('touchmove', sketchpad_touchMove, false);
+				    canvas.addEventListener('touchend', mouseOrTouchUp, false);
+
+					inputNode.addEventListener(
+						"change",
+						function (e) {
+							var file = e.target.files[0];
+							var reader = new FileReader();
+							reader.onload = function (e) {
+								imageNode.src = e.target.result;
+								imageNode.onload = function () {
+									var x=0,y=0,w=this.width,h=this.height;
+									if(this.width/this.height>576/320){
+										y=0;
+										h=this.height;
+										w=this.height*576/320;
+										x=(this.width-w)/2;
+									}else{
+										x=0;
+										w=this.width;
+										h=this.width*320/576;
+										y=(this.height-h)/2;
+									}
+									ctx.drawImage(imageNode, x, y, w, h, 0, 0, 576, 320);
+					
+								};
+							};
+							file && reader.readAsDataURL(file);
+						},
+						false
+					);
+				}
+		}
+
+		// Draws a dot at a specific position on the supplied canvas name
+		// Parameters are: A canvas context, the x position, the y position, the size of the dot
+		function drawLine(ctx, x, y, size) {
+			return;
+				ctx.fillStyle = "lightgrey";
+				ctx.beginPath();
+
+				var n = userDrawnPixels.length;
+				var point = userDrawnPixels[n-1];
+
+				if ((n>1)) {// && moving
+				    var prevPoint = userDrawnPixels[n-2];
+				    ctx.moveTo(prevPoint[0],prevPoint[1]);
+				    ctx.lineTo(point[0], point[1]);
+				} else {
+				    //ctx.moveTo(point[0],point[0]);
+				    //ctx.lineTo(point[0], point[1]);
+				}
+
+				ctx.lineCap = "round";
+				ctx.lineJoin = "round";
+				ctx.lineWidth = size;
+				ctx.stroke();
+				ctx.closePath();
+				//ctx.fill();
+		}
+
+
+		function drawDot(ctx, x, y, size) {
+			return;
+				ctx.fillStyle = "lightgrey";
+
+				// Draw a filled circle
+				ctx.arc(x, y, size, 0, Math.PI*2, true);
+				ctx.closePath();
+				ctx.fill();
+		}
+
+				// Keep track of the mouse button being pressed and draw a dot at current location
+		function sketchpad_mouseDown(e) {
+                /*getMousePos(e);
+                
+				userDrawnPixelsPush([mouseX, mouseY]);
+				drawLine(ctx,mouseX,mouseY,6);
+
+				mouseDown=1;*/
+		}
+
+
+		function mouseOrTouchUp(e) {
+				//mouseDown=0;
+				//moving=0;
+                // Update the mouse co-ordinates when moved
+
+                if(!mouseX){
+                    getMousePos(e);
+                    ctx.beginPath();
+				    drawDot(ctx,mouseX,mouseY,6);
+                    
+                    userDrawnPixelsPush([mouseX, mouseY]);
+				    moving=1;
+                }else{
+                    getMousePos(e);
+				// Draw a dot if the mouse button is currently being pressed
+				//if (mouseDown==1) {
+				    userDrawnPixelsPush([mouseX, mouseY]);
+                    //drawDot(ctx,mouseX,mouseY,6);
+				    drawLine(ctx,mouseX,mouseY,6);
+				    moving=1;
+				//}
+                }
+		}
+
+		function sketchpad_mouseMove(e) {
+				/*// Update the mouse co-ordinates when moved
+				getMousePos(e);
+
+				// Draw a dot if the mouse button is currently being pressed
+				if (mouseDown==1) {
+				    drawLine(ctx,mouseX,mouseY,6);
+				    userDrawnPixelsPush([mouseX, mouseY]);
+				    moving=1;
+				}*/
+		}
+
+		// Get the current mouse position relative to the top-left of the canvas
+		function getMousePos(e) {
+				if (!e)
+				    var e = event;
+
+				if (e.offsetX) {
+				    mouseX = e.offsetX;
+				    mouseY = e.offsetY;
+				}
+				else if (e.layerX) {
+				    mouseX = e.layerX;
+				    mouseY = e.layerY;
+				}
+		}
+
+		// Draw something when a touch start is detected
+		function sketchpad_touchStart() {
+				//getTouchPos();
+				/*userDrawnPixelsPush([touchX, touchY]);
+				
+
+				// Prevent a scrolling action as a result of this touchmove triggering.
+				event.preventDefault();
+
+				moving=1;*/
+                /*userDrawnPixelsPush([touchX, touchY]);
+				drawLine(ctx,touchX,touchY,6);
+
+				mouseDown=1;*/
+                
+		}
+
+		function sketchpad_touchMove(e) {
+				/*getTouchPos(e);
+				userDrawnPixelsPush([touchX, touchY]);
+				drawLine(ctx,touchX,touchY,6);
+
+				// Prevent a scrolling action as a result of this touchmove triggering.
+				event.preventDefault();*/
+		}
+        
+        function SaveTraj(){
+            alert(JSON.stringify(userDrawnPixels));
+        }
+        
+        function userDrawnPixelsPush(point){
+            if(userDrawnPixels.length==0&&point[0]!=null){
+                userDrawnPixels.push(point);
+            }else{
+                if(point[0]!=null&&(userDrawnPixels[userDrawnPixels.length-1][0]!=point[0]||userDrawnPixels[userDrawnPixels.length-1][1]!=point[1])){
+                    userDrawnPixels.push(point);
+                }
+            }
+            
+            document.getElementById('traj').value=JSON.stringify([userDrawnPixels]);
+
+			if(userDrawnPixels.length>3){
+				socket.emit('camera_poses', {roomid:roomid,img:canvas.toDataURL('image/png'),trajs:JSON.stringify([userDrawnPixels])});
+            
+				userDrawnPixels=[userDrawnPixels[userDrawnPixels.length-1]];
+			}
+        }
+
+		init();
+	</script>
+</body>
+</html>
