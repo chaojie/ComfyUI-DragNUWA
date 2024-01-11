@@ -3,16 +3,16 @@ from typing import Callable, Iterable, Union
 import torch
 from einops import rearrange, repeat
 
-from dragnuwa.svd.modules.diffusionmodules.model import (
+from ....dragnuwa.svd.modules.diffusionmodules.model import (
     XFORMERS_IS_AVAILABLE,
     AttnBlock,
     Decoder,
     MemoryEfficientAttnBlock,
     ResnetBlock,
 )
-from dragnuwa.svd.modules.diffusionmodules.openaimodel import ResBlock, timestep_embedding
-from dragnuwa.svd.modules.video_attention import VideoTransformerBlock
-from dragnuwa.svd.util import partialclass
+from ....dragnuwa.svd.modules.diffusionmodules.openaimodel import ResBlock, timestep_embedding
+from ....dragnuwa.svd.modules.video_attention import VideoTransformerBlock
+from ....dragnuwa.svd.util import partialclass
 
 
 class VideoResBlock(ResnetBlock):

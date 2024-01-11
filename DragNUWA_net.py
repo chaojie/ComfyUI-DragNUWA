@@ -1,15 +1,16 @@
-from utils import *
+
+from .utils import *
 
 #### SVD
-from dragnuwa.svd.modules.diffusionmodules.video_model_flow import VideoUNet_flow, VideoResBlock_Embed
-from dragnuwa.svd.modules.diffusionmodules.denoiser import Denoiser
-from dragnuwa.svd.modules.diffusionmodules.denoiser_scaling import VScalingWithEDMcNoise
-from dragnuwa.svd.modules.encoders.modules import *
-from dragnuwa.svd.models.autoencoder import AutoencodingEngine
-from dragnuwa.svd.modules.diffusionmodules.wrappers import OpenAIWrapper
-from dragnuwa.svd.modules.diffusionmodules.sampling import EulerEDMSampler
+from .dragnuwa.svd.modules.diffusionmodules.video_model_flow import VideoUNet_flow, VideoResBlock_Embed
+from .dragnuwa.svd.modules.diffusionmodules.denoiser import Denoiser
+from .dragnuwa.svd.modules.diffusionmodules.denoiser_scaling import VScalingWithEDMcNoise
+from .dragnuwa.svd.modules.encoders.modules import *
+from .dragnuwa.svd.models.autoencoder import AutoencodingEngine
+from .dragnuwa.svd.modules.diffusionmodules.wrappers import OpenAIWrapper
+from .dragnuwa.svd.modules.diffusionmodules.sampling import EulerEDMSampler
 
-from dragnuwa.lora import inject_trainable_lora, inject_trainable_lora_extended, extract_lora_ups_down, _find_modules
+from .dragnuwa.lora import inject_trainable_lora, inject_trainable_lora_extended, extract_lora_ups_down, _find_modules
 
 def get_gaussian_kernel(kernel_size, sigma, channels):
     print('parameters of gaussian kernel: kernel_size: {}, sigma: {}, channels: {}'.format(kernel_size, sigma, channels))

@@ -5,12 +5,11 @@ from PIL import Image, ImageFilter
 import uuid
 from scipy.interpolate import interp1d, PchipInterpolator
 import torchvision
-from utils import *
+from .utils import *
+import os
 import folder_paths
 import json
-
-output_dir = "outputs"
-ensure_dirname(output_dir)
+from .DragNUWA_net import Net, args
 
 def interpolate_trajectory(points, n_points):
     x = [point[0] for point in points]
@@ -69,7 +68,7 @@ class Drag:
     def __init__(self, device, model_path, cfg_path, height, width, model_length):
         self.device = device
         cf = import_filename(cfg_path)
-        Net, args = cf.Net, cf.args
+        #Net, args = cf.Net, cf.args
         drag_nuwa_net = Net(args)
         state_dict = file2data(model_path, map_location='cpu')
         adaptively_load_state_dict(drag_nuwa_net, state_dict)
@@ -187,16 +186,11 @@ class Drag:
                                             motion_bucket_id)
             ouput_video_list.append(outputs['logits_imgs'])
 
+        ouput_tensor = [ouput_video_list[0][0]]
         for i in range(inference_batch_size):
-            ouput_tensor = [ouput_video_list[0][i]]
             for j in range(num_inference - 1):
                 ouput_tensor.append(ouput_video_list[j+1][i][1:])
-            ouput_tensor = torch.cat(ouput_tensor, dim=0)
-            outputs_path = os.path.join(output_dir, f'output_{i}_{id}.gif')
-            data2file([transforms.ToPILImage('RGB')(utils.make_grid(e.to(torch.float32).cpu(), normalize=True, range=(-1, 1))) for e in ouput_tensor], outputs_path,
-                      printable=False, duration=1 / 6, override=True)
-
-        return visualized_drag[0], outputs_path
+        return torch.cat(ouput_tensor, dim=0).unsqueeze(0)
 
 class LoadCheckPointDragNUWA:
     @classmethod
@@ -218,7 +212,7 @@ class LoadCheckPointDragNUWA:
     def load_dragnuwa(self, ckpt_name, height, width, model_length):
         comfy_path = os.path.dirname(folder_paths.__file__)
         ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
-        DragNUWA_net = Drag("cuda:0", ckpt_path, 'DragNUWA_net.py', height, width, model_length)
+        DragNUWA_net = Drag("cuda:0", ckpt_path, f'{comfy_path}/custom_nodes/ComfyUI-DragNUWA/DragNUWA_net.py', height, width, model_length)
         return (DragNUWA_net,)
 
 class DragNUWARun:
@@ -226,6 +220,7 @@ class DragNUWARun:
     def INPUT_TYPES(cls):
         return {
             "required": {
+                "DragNUWA": ("DragNUWA",),
                 "image": ("IMAGE",),
                 "tracking_points": ("STRING", {"multiline": True, "default":"[[[25,25],[128,128]]]"}),
                 "inference_batch_size": ("INT", {"default": 1, "min": 1, "max": 1}),
@@ -237,9 +232,14 @@ class DragNUWARun:
     FUNCTION = "run_inference"
     CATEGORY = "DragNUWA"
     
-    def run_inference(self, image, tracking_points):
+    def run_inference(self, DragNUWA, image, tracking_points):
         image = 255.0 * image[0].cpu().numpy()
         image = Image.fromarray(np.clip(image, 0, 255).astype(np.uint8))
         tracking_points=json.loads(tracking_points)
         DragNUWA_net.run(image, tracking_points, inference_batch_size, motion_bucket_id)
     
+
+NODE_CLASS_MAPPINGS = {
+    "Load CheckPoint DragNUWA": LoadCheckPointDragNUWA,
+    "DragNUWA Run": DragNUWARun,
+}
