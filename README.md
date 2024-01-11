@@ -29,3 +29,17 @@ base workflow
 <img src="assets/base_wf.png" raw=true>
 
 https://github.com/chaojie/ComfyUI-DragNUWA/blob/main/workflow.json
+
+
+api workflow
+
+<video controls autoplay="true">
+    <source 
+   src="assets/api.mp4" 
+   type="video/mp4" 
+  />
+</video>
+
+cd tools
+
+python api.py
