@@ -12,7 +12,7 @@
 
 ## Nodes
 
-Four nodes `Load CheckPoint DragNUWA` & `DragNUWA Run`
+Two nodes `Load CheckPoint DragNUWA` & `DragNUWA Run`
 
 ## Tools
 
