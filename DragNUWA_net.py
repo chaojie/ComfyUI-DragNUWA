@@ -83,7 +83,7 @@ class Args:
     # model
     denoiser_config = {
         'scaling_config':{
-            'target': 'dragnuwa.svd.modules.diffusionmodules.denoiser_scaling.VScalingWithEDMcNoise',
+            'target': 'custom_nodes.ComfyUI-DragNUWA.dragnuwa.svd.modules.diffusionmodules.denoiser_scaling.VScalingWithEDMcNoise',
         }
     }
 
@@ -95,12 +95,12 @@ class Args:
         {'is_trainable': False,
          'input_key': 'cond_frames_without_noise',  # crossattn
          'ucg_rate': 0.1,
-         'target': 'dragnuwa.svd.modules.encoders.modules.FrozenOpenCLIPImagePredictionEmbedder',
+         'target': 'custom_nodes.ComfyUI-DragNUWA.dragnuwa.svd.modules.encoders.modules.FrozenOpenCLIPImagePredictionEmbedder',
          'params':{
             'n_cond_frames': 1,
             'n_copies': 1,
             'open_clip_embedding_config': {
-                'target': 'dragnuwa.svd.modules.encoders.modules.FrozenOpenCLIPImageEmbedder',
+                'target': 'custom_nodes.ComfyUI-DragNUWA.dragnuwa.svd.modules.encoders.modules.FrozenOpenCLIPImageEmbedder',
                 'params': {
                     'freeze':True,
                 }
@@ -110,7 +110,7 @@ class Args:
         {'input_key': 'fps_id',                 # vector
          'is_trainable': False,
          'ucg_rate': 0.1,
-         'target': 'dragnuwa.svd.modules.encoders.modules.ConcatTimestepEmbedderND',
+         'target': 'custom_nodes.ComfyUI-DragNUWA.dragnuwa.svd.modules.encoders.modules.ConcatTimestepEmbedderND',
          'params': {
             'outdim': 256,
          }
@@ -118,7 +118,7 @@ class Args:
         {'input_key': 'motion_bucket_id',       # vector
         'ucg_rate': 0.1,
          'is_trainable': False,
-         'target': 'dragnuwa.svd.modules.encoders.modules.ConcatTimestepEmbedderND',
+         'target': 'custom_nodes.ComfyUI-DragNUWA.dragnuwa.svd.modules.encoders.modules.ConcatTimestepEmbedderND',
          'params': {
             'outdim': 256,
          }
@@ -126,7 +126,7 @@ class Args:
         {'input_key': 'cond_frames',            # concat
          'is_trainable': False,
          'ucg_rate': 0.1,
-         'target': 'dragnuwa.svd.modules.encoders.modules.VideoPredictionEmbedderWithEncoder',
+         'target': 'custom_nodes.ComfyUI-DragNUWA.dragnuwa.svd.modules.encoders.modules.VideoPredictionEmbedderWithEncoder',
         'params': {
             'en_and_decode_n_samples_a_time': 1,
             'disable_encoder_autocast': True,
@@ -134,7 +134,7 @@ class Args:
             'n_copies': 1,
             'is_ae': True,
             'encoder_config': {
-                'target': 'dragnuwa.svd.models.autoencoder.AutoencoderKLModeOnly',
+                'target': 'custom_nodes.ComfyUI-DragNUWA.dragnuwa.svd.models.autoencoder.AutoencoderKLModeOnly',
                 'params': {
                     'embed_dim': 4,
                     'monitor': 'val/rec_loss',
@@ -161,7 +161,7 @@ class Args:
         {'input_key': 'cond_aug',               # vector
          'ucg_rate': 0.1,
          'is_trainable': False,
-         'target': 'dragnuwa.svd.modules.encoders.modules.ConcatTimestepEmbedderND',
+         'target': 'custom_nodes.ComfyUI-DragNUWA.dragnuwa.svd.modules.encoders.modules.ConcatTimestepEmbedderND',
         'params': {
             'outdim': 256,
         }
@@ -170,8 +170,8 @@ class Args:
 
     first_stage_config = {
         'loss_config': {'target': 'torch.nn.Identity'},
-        'regularizer_config': {'target': 'dragnuwa.svd.modules.autoencoding.regularizers.DiagonalGaussianRegularizer'},
-        'encoder_config':{'target': 'dragnuwa.svd.modules.diffusionmodules.model.Encoder',
+        'regularizer_config': {'target': 'custom_nodes.ComfyUI-DragNUWA.dragnuwa.svd.modules.autoencoding.regularizers.DiagonalGaussianRegularizer'},
+        'encoder_config':{'target': 'custom_nodes.ComfyUI-DragNUWA.dragnuwa.svd.modules.diffusionmodules.model.Encoder',
         'params': { 'attn_type':'vanilla',
                     'double_z': True,
                     'z_channels': 4,
@@ -185,7 +185,7 @@ class Args:
                     'dropout': 0.0,
                 }
             },
-        'decoder_config':{'target': 'dragnuwa.svd.modules.autoencoding.temporal_ae.VideoDecoder',
+        'decoder_config':{'target': 'custom_nodes.ComfyUI-DragNUWA.dragnuwa.svd.modules.autoencoding.temporal_ae.VideoDecoder',
                           'params': {'attn_type': 'vanilla',
                                      'double_z': True,
                                      'z_channels': 4,
@@ -203,10 +203,10 @@ class Args:
     }
 
     sampler_config = {
-        'discretization_config': {'target': 'dragnuwa.svd.modules.diffusionmodules.discretizer.EDMDiscretization',
+        'discretization_config': {'target': 'custom_nodes.ComfyUI-DragNUWA.dragnuwa.svd.modules.diffusionmodules.discretizer.EDMDiscretization',
                                   'params': {'sigma_max': 700.0,},
         },
-        'guider_config': {'target': 'dragnuwa.svd.modules.diffusionmodules.guiders.LinearPredictionGuider',
+        'guider_config': {'target': 'custom_nodes.ComfyUI-DragNUWA.dragnuwa.svd.modules.diffusionmodules.guiders.LinearPredictionGuider',
                           'params': {'max_scale':2.5,
                                      'min_scale':1.0,
                                      'num_frames':14},

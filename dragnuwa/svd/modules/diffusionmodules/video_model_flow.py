@@ -10,10 +10,10 @@ from deepspeed.runtime.activation_checkpointing.checkpointing import checkpoint 
 
 from einops import rearrange
 
-from ....dragnuwa.svd.modules.video_attention import SpatialVideoTransformer
-from ....dragnuwa.svd.modules.attention import SpatialTransformer
-from ....dragnuwa.svd.util import default
-from ....dragnuwa.svd.modules.diffusionmodules.util import (AlphaBlender, avg_pool_nd, conv_nd, linear,
+from ..video_attention import SpatialVideoTransformer
+from ..attention import SpatialTransformer
+from ...util import default
+from .util import (AlphaBlender, avg_pool_nd, conv_nd, linear,
                                               normalization,
                                               timestep_embedding, zero_module)
 

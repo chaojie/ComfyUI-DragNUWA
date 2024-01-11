@@ -10,6 +10,8 @@ import os
 import folder_paths
 import json
 from .DragNUWA_net import Net, args
+import os.path
+import sys
 
 def interpolate_trajectory(points, n_points):
     x = [point[0] for point in points]
@@ -67,7 +69,7 @@ def visualize_drag_v2(background_image_path, splited_tracks, width, height):
 class Drag:
     def __init__(self, device, model_path, cfg_path, height, width, model_length):
         self.device = device
-        cf = import_filename(cfg_path)
+        #cf = import_filename(cfg_path)
         #Net, args = cf.Net, cf.args
         drag_nuwa_net = Net(args)
         state_dict = file2data(model_path, map_location='cpu')
@@ -162,7 +164,7 @@ class Drag:
 
         image_pil = first_frame.resize((self.width, self.height), Image.BILINEAR).convert('RGB')
         
-        visualized_drag, _ = visualize_drag_v2(first_frame_path, resized_all_points, self.width, self.height)
+        #visualized_drag, _ = visualize_drag_v2(first_frame_path, resized_all_points, self.width, self.height)
         
         first_frames_transform = transforms.Compose([
                         lambda x: Image.fromarray(x),
@@ -190,7 +192,11 @@ class Drag:
         for i in range(inference_batch_size):
             for j in range(num_inference - 1):
                 ouput_tensor.append(ouput_video_list[j+1][i][1:])
-        return torch.cat(ouput_tensor, dim=0).unsqueeze(0)
+
+        ouput_tensor=torch.cat(ouput_tensor, dim=0)
+        data=[transforms.ToPILImage('RGB')(utils.make_grid(e.to(torch.float32).cpu(), normalize=True, value_range=(-1, 1))) for e in ouput_tensor]
+        data = [torch.unsqueeze(torch.tensor(np.array(image).astype(np.float32) / 255.0), 0) for image in data]
+        return torch.cat(tuple(data), dim=0).unsqueeze(0)
 
 class LoadCheckPointDragNUWA:
     @classmethod
@@ -212,6 +218,8 @@ class LoadCheckPointDragNUWA:
     def load_dragnuwa(self, ckpt_name, height, width, model_length):
         comfy_path = os.path.dirname(folder_paths.__file__)
         ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
+        current_path = os.path.abspath(os.path.dirname(__file__))
+        sys.path.append(current_path)
         DragNUWA_net = Drag("cuda:0", ckpt_path, f'{comfy_path}/custom_nodes/ComfyUI-DragNUWA/DragNUWA_net.py', height, width, model_length)
         return (DragNUWA_net,)
 
@@ -220,7 +228,7 @@ class DragNUWARun:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "DragNUWA": ("DragNUWA",),
+                "model": ("DragNUWA",),
                 "image": ("IMAGE",),
                 "tracking_points": ("STRING", {"multiline": True, "default":"[[[25,25],[128,128]]]"}),
                 "inference_batch_size": ("INT", {"default": 1, "min": 1, "max": 1}),
@@ -232,11 +240,15 @@ class DragNUWARun:
     FUNCTION = "run_inference"
     CATEGORY = "DragNUWA"
     
-    def run_inference(self, DragNUWA, image, tracking_points):
+    def run_inference(self, model, image, tracking_points, inference_batch_size, motion_bucket_id):
         image = 255.0 * image[0].cpu().numpy()
-        image = Image.fromarray(np.clip(image, 0, 255).astype(np.uint8))
+        image_pil = Image.fromarray(np.clip(image, 0, 255).astype(np.uint8))
+        raw_w, raw_h = image_pil.size
+        resize_ratio = max(576/raw_w, 320/raw_h)
+        image_pil = image_pil.resize((int(raw_w * resize_ratio), int(raw_h * resize_ratio)), Image.BILINEAR)
+        image_pil = transforms.CenterCrop((320, 576))(image_pil.convert('RGB'))
         tracking_points=json.loads(tracking_points)
-        DragNUWA_net.run(image, tracking_points, inference_batch_size, motion_bucket_id)
+        return model.run(image_pil, tracking_points, inference_batch_size, motion_bucket_id)
     
 
 NODE_CLASS_MAPPINGS = {

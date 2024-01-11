@@ -77,9 +77,10 @@ class GeneralConditioner(nn.Module):
         embedders = []
         for n, embconfig in enumerate(emb_models):
             embedder = instantiate_from_config(embconfig)
-            assert isinstance(
-                embedder, AbstractEmbModel
-            ), f"embedder model {embedder.__class__.__name__} has to inherit from AbstractEmbModel"
+            #print(f'{embedder}')
+            #assert isinstance(
+            #    embedder, AbstractEmbModel
+            #), f"embedder model {embedder.__class__.__name__} has to inherit from AbstractEmbModel"
             embedder.is_trainable = embconfig.get("is_trainable", False)
             embedder.ucg_rate = embconfig.get("ucg_rate", 0.0)
             if not embedder.is_trainable:
