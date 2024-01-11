@@ -10,6 +10,8 @@
 
 3. Download the weights of DragNUWA  [drag_nuwa_svd.pth](https://drive.google.com/file/d/1Z4JOley0SJCb35kFF4PCc6N6P1ftfX4i/view) and put it to `ComfyUI/models/checkpoints/drag_nuwa_svd.pth`
 
+For chinese users:[drag_nuwa_svd.pth](https://www.liblib.art/modelinfo/e72699771a7b443499ffdd298f58f0a7)
+
 ## Nodes
 
 Two nodes `Load CheckPoint DragNUWA` & `DragNUWA Run`
