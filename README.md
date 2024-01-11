@@ -24,14 +24,14 @@ Two nodes `Load CheckPoint DragNUWA` & `DragNUWA Run`
 
 ## Examples
 
-base workflow
+1. base workflow
 
 <img src="assets/base_wf.png" raw=true>
 
 https://github.com/chaojie/ComfyUI-DragNUWA/blob/main/workflow.json
 
 
-api workflow
+2. api workflow
 
 <video controls autoplay="true">
     <source 
@@ -40,6 +40,8 @@ api workflow
   />
 </video>
 
+```
 cd tools
 
 python api.py
+```
