@@ -31,7 +31,7 @@ try :
 
     GRADIENT_CHECKPOINTING = 'ds'  # 'ds' or 'pt'
 except ImportError:
-    GRADIENT_CHECKPOINTING = 'ds'  # 'pt'
+    GRADIENT_CHECKPOINTING = 'pt'  # 'pt'
 
 def is_deepspeed_initialized():
     try:
