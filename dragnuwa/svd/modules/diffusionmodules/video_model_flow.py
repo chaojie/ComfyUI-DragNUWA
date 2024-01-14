@@ -5,8 +5,8 @@ import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint as pt_checkpoint # gradient checkpointing from pytorch
 from functools import partial
 from typing import List, Optional, Union
-import deepspeed
-from deepspeed.runtime.activation_checkpointing.checkpointing import checkpoint as ds_checkpoint    # gradient checkpointing from deepspeed
+#import deepspeed
+#from deepspeed.runtime.activation_checkpointing.checkpointing import checkpoint as ds_checkpoint    # gradient checkpointing from deepspeed
 
 from einops import rearrange
 
@@ -24,12 +24,22 @@ from typing import Iterable, List, Optional, Tuple, Union
 
 logpy = logging.getLogger(__name__)
 
-GRADIENT_CHECKPOINTING = 'ds'  # 'ds' or 'pt'
+#GRADIENT_CHECKPOINTING = 'ds'  # 'ds' or 'pt'
+try :
+    import deepspeed
+    from deepspeed.runtime.activation_checkpointing.checkpointing import checkpoint as ds_checkpoint    # gradient checkpointing from deepspeed
+
+    GRADIENT_CHECKPOINTING = 'ds'  # 'ds' or 'pt'
+except ImportError:
+    GRADIENT_CHECKPOINTING = 'pt'  # 'pt'
 
 def is_deepspeed_initialized():
-    if deepspeed.comm.comm.cdb is not None and deepspeed.comm.comm.cdb.is_initialized():
-        return True
-    else:
+    try:
+        if deepspeed.comm.comm.cdb is not None and deepspeed.comm.comm.cdb.is_initialized():
+            return True
+        else:
+            return False
+    except:
         return False
     
 def checkpoint(func, *args, **kwargs):

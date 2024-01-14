@@ -20,7 +20,9 @@ Two nodes `Load CheckPoint DragNUWA` & `DragNUWA Run`
 
 [Motion Traj Tool](https://chaojie.github.io/ComfyUI-DragNUWA/tools/draw.html) Generate motion trajectories
 
-<img src="assets/traj.png" raw=true>
+<img src="assets/multiline.png" raw=true>
+
+<img src="assets/multiline.gif" raw=true>
 
 ## Examples
 

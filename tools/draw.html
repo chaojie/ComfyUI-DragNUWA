@@ -9,6 +9,7 @@
 
 <body>
   <input type="file" id="inputFile" accept="image/*" />
+  <button type="button" onclick="newline()">new line</button><br/>
   Click on canvas to draw traj<br/>
   <canvas id="canvas" height="320" width="576" style="border:1px dotted gray;"></canvas>
   <br/>
@@ -27,6 +28,7 @@
 		// Variables to keep track of the touch position
 		var touchX,touchY;
 
+		var lines = [];
 		var userDrawnPixels = [];
 
 		// Get the touch position relative to the top-left of the canvas
@@ -44,6 +46,13 @@
 				        touchY=touch.pageY-touch.target.offsetTop;
 				    }
 				}
+		}
+
+		function newline(){
+			if(userDrawnPixels.length==0)return;
+			
+			userDrawnPixels=[];
+			lines.push(userDrawnPixels);
 		}
 
 		// Set-up the canvas and add our event handlers after the page has loaded
@@ -117,6 +126,7 @@
 				    ctx.moveTo(prevPoint[0],prevPoint[1]);
 				    ctx.lineTo(point[0], point[1]);
 				} else {
+					drawDot(ctx,point[0], point[1],6);
 				    //ctx.moveTo(point[0],point[0]);
 				    //ctx.lineTo(point[0], point[1]);
 				}
@@ -243,7 +253,13 @@
                 }
             }
             
-            document.getElementById('traj').value=JSON.stringify([userDrawnPixels]);
+			if(lines.length==0){
+				lines[0]=userDrawnPixels;
+			}else{
+				lines[lines.length-1]=userDrawnPixels;
+			}
+			
+            document.getElementById('traj').value=JSON.stringify(lines);
         }
 
 		init();
