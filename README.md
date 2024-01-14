@@ -42,6 +42,10 @@ https://github.com/chaojie/ComfyUI-DragNUWA/blob/main/workflow.json
   />
 </video>
 
+3. auto traj video generation (working on)
+
+one flow: video -> dwpose -> keypoints -> trajectory -> DragNUWA (dragposecontrol animateanyone)
+
 ```
 cd tools
 
