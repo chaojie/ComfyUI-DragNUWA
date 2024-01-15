@@ -90,7 +90,9 @@
 								imageNode.src = e.target.result;
 								imageNode.onload = function () {
 									var x=0,y=0,w=this.width,h=this.height;
-									ctx.drawImage(imageNode, x, y, w, h, 0, 0, 576, 320);
+									canvas.width=w;
+									canvas.height=h;
+									ctx.drawImage(imageNode, x, y, w, h, 0, 0, w, h);
 									/*if(this.width/this.height>576/320){
 										y=0;
 										h=this.height;

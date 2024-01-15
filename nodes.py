@@ -140,10 +140,10 @@ class Drag:
         return outputs
 
     def run(self, first_frame, tracking_points, inference_batch_size, motion_bucket_id):
-        original_width, original_height=576, 320
+        #original_width, original_height=576, 320
 
         input_all_points = tracking_points
-        resized_all_points = [tuple([tuple([int(e1[0]*self.width/original_width), int(e1[1]*self.height/original_height)]) for e1 in e]) for e in input_all_points]
+        resized_all_points = [tuple([tuple([int(e1[0]*1), int(e1[1]*1)]) for e1 in e]) for e in input_all_points]
 
         input_drag = torch.zeros(self.model_length - 1, self.height, self.width, 2)
         for splited_track in resized_all_points:
