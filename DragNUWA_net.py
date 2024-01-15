@@ -239,7 +239,7 @@ class Net(nn.Module):
         self.args = args
         self.device = 'cpu'
         ### unet
-        model = VideoUNet_flow(**args.network_config)
+        model = VideoUNet_flow(**args.network_config).to(self.device)
         self.model = OpenAIWrapper(model)
 
         ### denoiser and sampler
@@ -247,10 +247,10 @@ class Net(nn.Module):
         self.sampler = EulerEDMSampler(**args.sampler_config)
 
         ### conditioner
-        self.conditioner = GeneralConditioner(args.conditioner_emb_models)
+        self.conditioner = GeneralConditioner(args.conditioner_emb_models).to(self.device)
 
         ### first stage model
-        self.first_stage_model = AutoencodingEngine(**args.first_stage_config).eval()
+        self.first_stage_model = AutoencodingEngine(**args.first_stage_config).eval().to(self.device)
 
         self.scale_factor = args.scale_factor
         self.en_and_decode_n_samples_a_time = 1 # decode 1 frame each time to save GPU memory
