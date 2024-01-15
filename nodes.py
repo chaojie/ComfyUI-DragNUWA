@@ -243,9 +243,9 @@ class DragNUWARun:
         image = 255.0 * image[0].cpu().numpy()
         image_pil = Image.fromarray(np.clip(image, 0, 255).astype(np.uint8))
         raw_w, raw_h = image_pil.size
-        resize_ratio = max(576/raw_w, 320/raw_h)
+        resize_ratio = max(model.width/raw_w, model.height/raw_h)
         image_pil = image_pil.resize((int(raw_w * resize_ratio), int(raw_h * resize_ratio)), Image.BILINEAR)
-        image_pil = transforms.CenterCrop((320, 576))(image_pil.convert('RGB'))
+        image_pil = transforms.CenterCrop((model.height, model.width))(image_pil.convert('RGB'))
         tracking_points=json.loads(tracking_points)
         return model.run(image_pil, tracking_points, inference_batch_size, motion_bucket_id)
 
