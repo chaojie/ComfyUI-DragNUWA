@@ -1,4 +1,3 @@
-import gradio as gr
 import numpy as np
 import cv2
 from PIL import Image, ImageFilter
@@ -72,8 +71,8 @@ class Drag:
         #cf = import_filename(cfg_path)
         #Net, args = cf.Net, cf.args
         drag_nuwa_net = Net(args)
-        state_dict = file2data(model_path, map_location='cpu')
-        adaptively_load_state_dict(drag_nuwa_net, state_dict)
+        #state_dict = file2data(model_path, map_location='cpu')
+        adaptively_load_state_dict(drag_nuwa_net, model_path)
         drag_nuwa_net.eval()
         drag_nuwa_net.to(device)
         # drag_nuwa_net.half()
@@ -249,9 +248,230 @@ class DragNUWARun:
         image_pil = transforms.CenterCrop((320, 576))(image_pil.convert('RGB'))
         tracking_points=json.loads(tracking_points)
         return model.run(image_pil, tracking_points, inference_batch_size, motion_bucket_id)
+
+class LoadPoseKeyPoints:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "file_name": (os.listdir(folder_paths.output_directory), {"default": "PoseKeypoint_00001.json"}),
+            }
+        }
+
+    RETURN_TYPES = ("POSE_KEYPOINT",)
+    FUNCTION = "run"
+    CATEGORY = "DragNUWA"
+
+    def run(self, file_name):
+        path = os.path.join(folder_paths.output_directory, file_name)
+        with open(path) as fr:
+            return (json.load(fr),)
     
+class SplitTrackingPoints:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "pose_kps": ("POSE_KEYPOINT",),
+                "split_index": ("INT",{"default":0}),
+            },
+            "optional": {
+                "last_pose_kps": ("POSE_KEYPOINT",{"default":None}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("tracking_points",)
+    FUNCTION = "split_tracking_points"
+    OUTPUT_NODE = True
+    CATEGORY = "DragNUWA"
+    
+    def split_tracking_points(self, pose_kps, split_index, last_pose_kps=None):
+        if split_index!=0:
+            if last_pose_kps is not None:
+                pose_kps[split_index*14]=last_pose_kps[0]
+        trajs=[]
+
+        for ipose in range(int(len(pose_kps[split_index*14]["people"][0]["pose_keypoints_2d"])/3)):
+            traj=[]
+            for itracking in range(14):
+                people=pose_kps[split_index*14+itracking]["people"]
+                if people[0]["pose_keypoints_2d"][ipose*3+2]==1.0:
+                    x=people[0]["pose_keypoints_2d"][ipose*3]
+                    y=people[0]["pose_keypoints_2d"][ipose*3+1]
+
+                    if x<=576 and y<=320:
+                        traj.append([x,y])
+                    else:
+                        break
+                else:
+                    if len(traj)>0:
+                        traj.append(traj[len(traj)-1])
+                    else:
+                        break
+
+            if len(traj)>0:
+                trajs.append(traj)
+                
+
+            return (json.dumps(trajs),)
+
+class GetFirstImage:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "images": ("IMAGE", ),
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE", )
+
+    FUNCTION = "run"
+
+    OUTPUT_NODE = False
+
+    CATEGORY = "DragNUWA"
+
+    def run(self, images: torch.Tensor):
+        shape = images.shape
+        len_first_dim = shape[0]
+        selected_indexes=f"0"
+
+        selected_index: list[int] = []
+        total_indexes: list[int] = list(range(len_first_dim))
+        for s in selected_indexes.strip().split(','):
+            try:
+                if ":" in s:
+                    _li = s.strip().split(':', maxsplit=1)
+                    _start = _li[0]
+                    _end = _li[1]
+                    if _start and _end:
+                        selected_index.extend(
+                            total_indexes[int(_start):int(_end)]
+                        )
+                    elif _start:
+                        selected_index.extend(
+                            total_indexes[int(_start):]
+                        )
+                    elif _end:
+                        selected_index.extend(
+                            total_indexes[:int(_end)]
+                        )
+                else:
+                    x: int = int(s.strip())
+                    if x < len_first_dim:
+                        selected_index.append(x)
+            except:
+                pass
+
+        return (images[selected_index, :, :, :], )
+
+class GetLastImage:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "images": ("IMAGE", ),
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE", )
+
+    FUNCTION = "run"
+
+    OUTPUT_NODE = False
+
+    CATEGORY = "DragNUWA"
+
+    def run(self, images: torch.Tensor):
+        shape = images.shape
+        len_first_dim = shape[0]
+        selected_indexes=f"{len_first_dim-1}"
+
+        selected_index: list[int] = []
+        total_indexes: list[int] = list(range(len_first_dim))
+        for s in selected_indexes.strip().split(','):
+            try:
+                if ":" in s:
+                    _li = s.strip().split(':', maxsplit=1)
+                    _start = _li[0]
+                    _end = _li[1]
+                    if _start and _end:
+                        selected_index.extend(
+                            total_indexes[int(_start):int(_end)]
+                        )
+                    elif _start:
+                        selected_index.extend(
+                            total_indexes[int(_start):]
+                        )
+                    elif _end:
+                        selected_index.extend(
+                            total_indexes[:int(_end)]
+                        )
+                else:
+                    x: int = int(s.strip())
+                    if x < len_first_dim:
+                        selected_index.append(x)
+            except:
+                pass
+
+        return (images[selected_index, :, :, :], )
+
+class Loop:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {}}
+
+    RETURN_TYPES = ("LOOP",)
+    FUNCTION = "run"
+    CATEGORY = "DragNUWA"
+
+    def run(self):
+        return (self,)
+
+class LoopStart_IMAGE:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {"first_loop": ("IMAGE",), "loop": ("LOOP",)}}
+
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "run"
+    CATEGORY = "DragNUWA"
+
+    def run(self, first_loop, loop):
+        if hasattr(loop, 'next'):
+            return (loop.next,)
+        return (first_loop,)
+
+    @classmethod
+    def IS_CHANGED(s, first_loop, loop):
+        if hasattr(loop, 'next'):
+            return id(loop.next)
+        return float("NaN")
+
+class LoopEnd_IMAGE:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": { "send_to_next_loop": ("IMAGE",), "loop": ("LOOP",) }}
+
+    RETURN_TYPES = ()
+    FUNCTION = "run"
+    CATEGORY = "DragNUWA"
+    OUTPUT_NODE = True
+
+    def run(self, send_to_next_loop, loop):
+        loop.next = send_to_next_loop
+        return ()
 
 NODE_CLASS_MAPPINGS = {
     "Load CheckPoint DragNUWA": LoadCheckPointDragNUWA,
     "DragNUWA Run": DragNUWARun,
+    "Load Pose KeyPoints": LoadPoseKeyPoints,
+    "Split Tracking Points": SplitTrackingPoints,
+    "Get Last Image":GetLastImage,
+    "Get First Image":GetFirstImage,
+    "Loop": Loop,
+    "LoopStart_IMAGE":LoopStart_IMAGE,
+    "LoopEnd_IMAGE":LoopEnd_IMAGE
 }

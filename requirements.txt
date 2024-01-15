@@ -31,7 +31,6 @@ torchmetrics>=1.0.1
 torchvision>=0.15.2
 tqdm>=4.65.0
 transformers==4.19.1
-triton==2.0.0
 urllib3<1.27,>=1.25.4
 wandb>=0.15.6
 webdataset>=0.2.33
@@ -49,6 +48,4 @@ tensorboard
 moviepy 
 pyyaml 
 pandas 
-einops 
-deepspeed
-gradio==3.50.2
+einops

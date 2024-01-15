@@ -12,6 +12,8 @@
 
 For chinese users:[drag_nuwa_svd.pth](https://www.liblib.art/modelinfo/e72699771a7b443499ffdd298f58f0a7)
 
+smaller and faster fp16 model: [dragnuwa-svd-pruned.fp16.safetensors](https://hf-mirror.com/benjamin-paine/dragnuwa-pruned-safetensors/resolve/main/dragnuwa-svd-pruned.fp16.safetensors) from https://github.com/painebenjamin/app.enfugue.ai
+
 ## Nodes
 
 Two nodes `Load CheckPoint DragNUWA` & `DragNUWA Run`
