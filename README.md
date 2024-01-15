@@ -12,7 +12,9 @@
 
 For chinese users:[drag_nuwa_svd.pth](https://www.liblib.art/modelinfo/e72699771a7b443499ffdd298f58f0a7)
 
-smaller and faster fp16 model: [dragnuwa-svd-pruned.fp16.safetensors](https://hf-mirror.com/benjamin-paine/dragnuwa-pruned-safetensors/resolve/main/dragnuwa-svd-pruned.fp16.safetensors) from https://github.com/painebenjamin/app.enfugue.ai
+smaller and faster fp16 model: [dragnuwa-svd-pruned.fp16.safetensors](https://huggingface.co/benjamin-paine/dragnuwa-pruned-safetensors/resolve/main/dragnuwa-svd-pruned.fp16.safetensors) from https://github.com/painebenjamin/app.enfugue.ai
+
+For chinese users: `wget https://hf-mirror.com/benjamin-paine/dragnuwa-pruned-safetensors/resolve/main/dragnuwa-svd-pruned.fp16.safetensors` 不能直接在浏览器下载，或者参照 https://hf-mirror.com/ 官方使用说明
 
 ## Nodes
 
