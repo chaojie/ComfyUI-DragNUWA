@@ -8,6 +8,11 @@
 </head>
 
 <body>
+	<select id="dimension" onchange="changeDimension()">
+		<option>576x320</option>
+		<option>320x576</option>
+		<option>512x512</option>
+	</select>
   <input type="file" id="inputFile" accept="image/*" />
   <button type="button" onclick="newline()">new line</button><br/>
   Click on canvas to draw traj<br/>
@@ -55,6 +60,28 @@
 			lines.push(userDrawnPixels);
 		}
 
+		var inited=false;
+
+		function changeDimension(){
+			var x=0,y=0,w=imageNode.width,h=imageNode.height;
+			dimension=document.getElementById("dimension").value.split('x');
+			canvas.width=dimension[0];
+			canvas.height=dimension[1];
+			//ctx.drawImage(imageNode, x, y, w, h, 0, 0, w, h);
+			if(imageNode.width/imageNode.height>canvas.width/canvas.height){
+				y=0;
+				h=imageNode.height;
+				w=imageNode.height*canvas.width/canvas.height;
+				x=(imageNode.width-w)/2;
+			}else{
+				x=0;
+				w=imageNode.width;
+				h=imageNode.width*canvas.height/canvas.width;
+				y=(imageNode.height-h)/2;
+			}
+			ctx.drawImage(imageNode, x, y, w, h, 0, 0, canvas.width, canvas.height);
+		}
+
 		// Set-up the canvas and add our event handlers after the page has loaded
 		function init() {
 				// Get the specific canvas element from the HTML document
@@ -89,22 +116,24 @@
 							reader.onload = function (e) {
 								imageNode.src = e.target.result;
 								imageNode.onload = function () {
+									inited=true;
 									var x=0,y=0,w=this.width,h=this.height;
-									canvas.width=w;
-									canvas.height=h;
-									ctx.drawImage(imageNode, x, y, w, h, 0, 0, w, h);
-									/*if(this.width/this.height>576/320){
+									dimension=document.getElementById("dimension").value.split('x');
+									canvas.width=dimension[0];
+									canvas.height=dimension[1];
+									//ctx.drawImage(imageNode, x, y, w, h, 0, 0, w, h);
+									if(this.width/this.height>canvas.width/canvas.height){
 										y=0;
 										h=this.height;
-										w=this.height*576/320;
+										w=this.height*canvas.width/canvas.height;
 										x=(this.width-w)/2;
 									}else{
 										x=0;
 										w=this.width;
-										h=this.width*320/576;
+										h=this.width*canvas.height/canvas.width;
 										y=(this.height-h)/2;
 									}
-									ctx.drawImage(imageNode, x, y, w, h, 0, 0, 576, 320);*/
+									ctx.drawImage(imageNode, x, y, w, h, 0, 0, canvas.width, canvas.height);
 					
 								};
 							};

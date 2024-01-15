@@ -203,8 +203,7 @@ class LoadCheckPointDragNUWA:
         return {
             "required": {
                 "ckpt_name": (folder_paths.get_filename_list("checkpoints"), {"default": "drag_nuwa_svd.pth"}),
-                "height": ("INT", {"default": 320}),
-                "width": ("INT", {"default": 576}),
+                "dimension": (["576x320","512x512","320x576"], {"default": "576x320"}),
                 "model_length": ("INT", {"default": 14}),
             }
         }
@@ -214,7 +213,9 @@ class LoadCheckPointDragNUWA:
     FUNCTION = "load_dragnuwa"
     CATEGORY = "DragNUWA"
     
-    def load_dragnuwa(self, ckpt_name, height, width, model_length):
+    def load_dragnuwa(self, ckpt_name, dimension, model_length):
+        width=int(dimension.split('x')[0])
+        height=int(dimension.split('x')[1])
         comfy_path = os.path.dirname(folder_paths.__file__)
         ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
         current_path = os.path.abspath(os.path.dirname(__file__))
@@ -312,11 +313,11 @@ class SplitTrackingPoints:
                     else:
                         break
 
-            if len(traj)>0:
-                trajs.append(traj)
-                
+        if len(traj)>0:
+            trajs.append(traj)
+            
 
-            return (json.dumps(trajs),)
+        return (json.dumps(trajs),)
 
 class GetFirstImage:
     @classmethod
