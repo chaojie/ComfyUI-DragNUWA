@@ -274,6 +274,8 @@ class SplitTrackingPoints:
             "required": {
                 "pose_kps": ("POSE_KEYPOINT",),
                 "split_index": ("INT",{"default":0}),
+                "height": ("INT", {"default": 320}),
+                "width": ("INT", {"default": 576}),
             },
             "optional": {
                 "last_pose_kps": ("POSE_KEYPOINT",{"default":None}),
@@ -286,7 +288,7 @@ class SplitTrackingPoints:
     OUTPUT_NODE = True
     CATEGORY = "DragNUWA"
     
-    def split_tracking_points(self, pose_kps, split_index, last_pose_kps=None):
+    def split_tracking_points(self, pose_kps, split_index, height, width, last_pose_kps=None):
         if split_index!=0:
             if last_pose_kps is not None:
                 pose_kps[split_index*14]=last_pose_kps[0]
@@ -300,7 +302,7 @@ class SplitTrackingPoints:
                     x=people[0]["pose_keypoints_2d"][ipose*3]
                     y=people[0]["pose_keypoints_2d"][ipose*3+1]
 
-                    if x<=576 and y<=320:
+                    if x<=width and y<=height:
                         traj.append([x,y])
                     else:
                         break
