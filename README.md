@@ -37,21 +37,6 @@ Two nodes `Load CheckPoint DragNUWA` & `DragNUWA Run`
 https://github.com/chaojie/ComfyUI-DragNUWA/blob/main/workflow.json
 
 
-2. api workflow
-
-<video controls autoplay="true">
-    <source 
-   src="assets/api.mp4" 
-   type="video/mp4" 
-  />
-</video>
-
-3. auto traj video generation (working on)
+2. auto traj video generation (working on)
 
 one flow: video -> dwpose -> keypoints -> trajectory -> DragNUWA (dragposecontrol animateanyone)
-
-```
-cd tools
-
-python api.py
-```
