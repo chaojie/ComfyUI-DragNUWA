@@ -12,6 +12,44 @@ from .DragNUWA_net import Net, args
 import os.path
 import sys
 
+def readFlow(fn):
+    """ Read .flo file in Middlebury format"""
+    # Code adapted from:
+    # http://stackoverflow.com/questions/28013200/reading-middlebury-flow-files-with-python-bytes-array-numpy
+
+    # WARNING: this will work on little-endian architectures (eg Intel x86) only!
+    # print 'fn = %s'%(fn)
+    with open(fn, 'rb') as f:
+        magic = np.fromfile(f, np.float32, count=1)
+        if 202021.25 != magic:
+            print('Magic number incorrect. Invalid .flo file')
+            return None
+        else:
+            w = np.fromfile(f, np.int32, count=1)
+            h = np.fromfile(f, np.int32, count=1)
+            # print 'Reading %d x %d flo file\n' % (w, h)
+            data = np.fromfile(f, np.float32, count=2 * int(w) * int(h))
+            # Reshape testdata into 3D array (columns, rows, bands)
+            # The reshape here is for visualization, the original code is (w,h,2)
+            return np.resize(data, (int(h), int(w), 2))
+
+def load_flo_files(folder_path):
+
+#Load flow files
+
+    flo_files = [file for file in os.listdir(folder_path) if file.endswith('.flo')]
+    flo_data = []
+
+    for file_name in flo_files:
+        file_path = os.path.join(folder_path, file_name)
+        flow_data = readFlow(file_path)
+        
+        if flow_data is not None:
+            flo_data.append(flow_data)
+
+    return flo_data
+
+
 def interpolate_trajectory(points, n_points):
     x = [point[0] for point in points]
     y = [point[1] for point in points]
@@ -138,6 +176,9 @@ class Drag:
 
         outputs['logits_imgs'] = rearrange(samples, '(b l) c h w -> b l c h w', b=b)
         return outputs
+    
+    
+
 
     def run(self, first_frame, tracking_points, inference_batch_size, motion_bucket_id):
         #original_width, original_height=576, 320
@@ -145,7 +186,7 @@ class Drag:
         input_all_points = tracking_points
         resized_all_points = [tuple([tuple([int(e1[0]*1), int(e1[1]*1)]) for e1 in e]) for e in input_all_points]
 
-        input_drag = torch.zeros(self.model_length - 1, self.height, self.width, 2)
+        input_drag = torch.zeros(self.model_length - 1, self.height, self.width, 2) ##input points
         for splited_track in resized_all_points:
             if len(splited_track) == 1: # stationary point
                 displacement_point = tuple([splited_track[0][0] + 1, splited_track[0][1] + 1])
@@ -161,6 +202,80 @@ class Drag:
                 input_drag[i][int(start_point[1])][int(start_point[0])][0] = end_point[0] - start_point[0]
                 input_drag[i][int(start_point[1])][int(start_point[0])][1] = end_point[1] - start_point[1]
 
+        image_pil = first_frame.resize((self.width, self.height), Image.BILINEAR).convert('RGB')
+        
+        #visualized_drag, _ = visualize_drag_v2(first_frame_path, resized_all_points, self.width, self.height)
+        
+        first_frames_transform = transforms.Compose([
+                        lambda x: Image.fromarray(x),
+                        transforms.ToTensor(),
+                        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+                    ])
+        
+        outputs = None
+        ouput_video_list = []
+        num_inference = 1
+        for i in tqdm(range(num_inference)):
+            if not outputs:
+                first_frames = pil2arr(first_frame)
+                first_frames = repeat(first_frames_transform(first_frames), 'c h w -> b c h w', b=inference_batch_size).to(self.device)
+            else:
+                first_frames = outputs['logits_imgs'][:, -1]
+            
+            outputs = self.forward_sample(
+                                            repeat(input_drag[i*(self.model_length - 1):(i+1)*(self.model_length - 1)], 'l h w c -> b l h w c', b=inference_batch_size).to(self.device), 
+                                            first_frames,
+                                            motion_bucket_id)
+            ouput_video_list.append(outputs['logits_imgs'])
+
+        ouput_tensor = [ouput_video_list[0][0]]
+        for i in range(inference_batch_size):
+            for j in range(num_inference - 1):
+                ouput_tensor.append(ouput_video_list[j+1][i][1:])
+
+        ouput_tensor=torch.cat(ouput_tensor, dim=0)
+        data=[transforms.ToPILImage('RGB')(utils.make_grid(e.to(torch.float32).cpu(), normalize=True, value_range=(-1, 1))) for e in ouput_tensor]
+        data = [torch.unsqueeze(torch.tensor(np.array(image).astype(np.float32) / 255.0), 0) for image in data]
+        return torch.cat(tuple(data), dim=0).unsqueeze(0)
+        
+        
+        
+        
+    def run_2(self, first_frame, tracking_points, inference_batch_size, motion_bucket_id, use_optical, flow_path):
+        #original_width, original_height=576, 320
+        
+      
+        input_all_points = tracking_points
+        resized_all_points = [tuple([tuple([int(e1[0]*1), int(e1[1]*1)]) for e1 in e]) for e in input_all_points]
+
+        input_drag = torch.zeros(self.model_length - 1, self.height, self.width, 2) ##input points
+        for splited_track in resized_all_points:
+            if len(splited_track) == 1: # stationary point
+                displacement_point = tuple([splited_track[0][0] + 1, splited_track[0][1] + 1])
+                splited_track = tuple([splited_track[0], displacement_point])
+            # interpolate the track
+            splited_track = interpolate_trajectory(splited_track, self.model_length)
+            splited_track = splited_track[:self.model_length]
+            if len(splited_track) < self.model_length:
+                splited_track = splited_track + [splited_track[-1]] * (self.model_length -len(splited_track))
+            for i in range(self.model_length - 1):
+                start_point = splited_track[i]
+                end_point = splited_track[i+1]
+                input_drag[i][int(start_point[1])][int(start_point[0])][0] = end_point[0] - start_point[0]
+                input_drag[i][int(start_point[1])][int(start_point[0])][1] = end_point[1] - start_point[1]
+
+
+        #Load optical flow
+        
+        if use_optical :
+        
+            flos = load_flo_files(flow_path)
+
+            for i in range(self.model_length-1):
+            
+                input_drag[i] = torch.from_numpy(flos[i])
+            
+            
         image_pil = first_frame.resize((self.width, self.height), Image.BILINEAR).convert('RGB')
         
         #visualized_drag, _ = visualize_drag_v2(first_frame_path, resized_all_points, self.width, self.height)
@@ -233,6 +348,8 @@ class DragNUWARun:
                 "tracking_points": ("STRING", {"multiline": True, "default":"[[[25,25],[128,128]]]"}),
                 "inference_batch_size": ("INT", {"default": 1, "min": 1, "max": 1}),
                 "motion_bucket_id": ("INT", {"default": 4, "min": 1, "max": 100}),
+                "use_optical_flow": ("BOOLEAN", {"default": False}),
+                "directory": ("STRING", {"default": "X://path/to/optical_flow", "vhs_path_extensions": []}),
             }
         }
         
@@ -240,7 +357,7 @@ class DragNUWARun:
     FUNCTION = "run_inference"
     CATEGORY = "DragNUWA"
     
-    def run_inference(self, model, image, tracking_points, inference_batch_size, motion_bucket_id):
+    def run_inference(self, model, image, tracking_points, inference_batch_size, motion_bucket_id, use_optical_flow, directory):
         image = 255.0 * image[0].cpu().numpy()
         image_pil = Image.fromarray(np.clip(image, 0, 255).astype(np.uint8))
         raw_w, raw_h = image_pil.size
@@ -248,7 +365,8 @@ class DragNUWARun:
         image_pil = image_pil.resize((int(raw_w * resize_ratio), int(raw_h * resize_ratio)), Image.BILINEAR)
         image_pil = transforms.CenterCrop((model.height, model.width))(image_pil.convert('RGB'))
         tracking_points=json.loads(tracking_points)
-        return model.run(image_pil, tracking_points, inference_batch_size, motion_bucket_id)
+        #return model.run(image_pil, tracking_points, inference_batch_size, motion_bucket_id)
+        return model.run_2(image_pil, tracking_points, inference_batch_size, motion_bucket_id, use_optical_flow, directory)
 
 class LoadPoseKeyPoints:
     @classmethod
