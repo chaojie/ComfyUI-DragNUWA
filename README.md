@@ -40,3 +40,11 @@ https://github.com/chaojie/ComfyUI-DragNUWA/blob/main/workflow.json
 2. auto traj video generation (working on)
 
 one flow: video -> dwpose -> keypoints -> trajectory -> DragNUWA (dragposecontrol animateanyone)
+
+
+3. optical flow workflow
+
+Thanks for Fannovol16's Unimatch_ OptFlowPreprocessor
+Thanks for toyxyz's load optical flow from directory
+
+https://github.com/chaojie/ComfyUI-DragNUWA/blob/main/workflow optical_flow.json
