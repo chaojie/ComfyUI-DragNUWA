@@ -23,8 +23,8 @@ scipy>=1.10.1
 streamlit>=0.73.1
 tensorboardx==2.6
 timm>=0.9.2
-tokenizers==0.12.1
-torchdata==0.6.1
+tokenizers>=0.12.1
+torchdata>=0.6.1
 torchmetrics>=1.0.1
 tqdm>=4.65.0
 urllib3<1.27,>=1.25.4
