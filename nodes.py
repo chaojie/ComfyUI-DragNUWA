@@ -11,6 +11,7 @@ import json
 from .DragNUWA_net import Net, args
 import os.path
 import sys
+import torch.nn.functional as F 
 
 def readFlow(fn):
     """ Read .flo file in Middlebury format"""
@@ -238,7 +239,47 @@ class Drag:
         data = [torch.unsqueeze(torch.tensor(np.array(image).astype(np.float32) / 255.0), 0) for image in data]
         return torch.cat(tuple(data), dim=0).unsqueeze(0)
         
+    def load_motionbrush_from_tracking_points(self, tracking_points):
+        #original_width, original_height=576, 320
         
+        input_all_points = tracking_points
+        resized_all_points = [tuple([tuple([int(e1[0]*1), int(e1[1]*1)]) for e1 in e]) for e in input_all_points]
+
+        motionbrush = torch.zeros(self.model_length - 1, self.height, self.width, 2) ##input points
+        for splited_track in resized_all_points:
+            if len(splited_track) == 1: # stationary point
+                displacement_point = tuple([splited_track[0][0] + 1, splited_track[0][1] + 1])
+                splited_track = tuple([splited_track[0], displacement_point])
+            # interpolate the track
+            splited_track = interpolate_trajectory(splited_track, self.model_length)
+            splited_track = splited_track[:self.model_length]
+            if len(splited_track) < self.model_length:
+                splited_track = splited_track + [splited_track[-1]] * (self.model_length -len(splited_track))
+            for i in range(self.model_length - 1):
+                start_point = splited_track[i]
+                end_point = splited_track[i+1]
+                motionbrush[i][int(start_point[1])][int(start_point[0])][0] = end_point[0] - start_point[0]
+                motionbrush[i][int(start_point[1])][int(start_point[0])][1] = end_point[1] - start_point[1]   
+
+        return motionbrush 
+        
+    def load_motionbrush_from_optical_flow_directory(self, flow_path):
+        flos = load_flo_files(flow_path)
+        motionbrush = torch.zeros(self.model_length - 1, self.height, self.width, 2) ##input points
+        for i in range(self.model_length - 1):
+            motionbrush[i] = F.interpolate(torch.from_numpy(flos[i]).unsqueeze(0).permute(0, 3, 1, 2).float() , size=(self.height,self.width), mode='bilinear', align_corners=True).squeeze().permute(1, 2, 0)
+
+        return motionbrush 
+        
+    def load_motionbrush_from_optical_flow(self, optical_flow):
+        motionbrush = torch.zeros(self.model_length - 1, self.height, self.width, 2)
+        print(motionbrush.shape)
+        for i in range(self.model_length - 1):
+            print(optical_flow[i].shape)
+            motionbrush[i] = F.interpolate(optical_flow[i].unsqueeze(0).permute(0, 3, 1, 2).float() , size=(self.height,self.width), mode='bilinear', align_corners=True).squeeze().permute(1, 2, 0)
+            print(motionbrush[i].shape)
+        print(motionbrush.shape)
+        return motionbrush 
         
         
     def run_2(self, first_frame, tracking_points, inference_batch_size, motion_bucket_id, use_optical, flow_path):
@@ -312,6 +353,46 @@ class Drag:
         data = [torch.unsqueeze(torch.tensor(np.array(image).astype(np.float32) / 255.0), 0) for image in data]
         return torch.cat(tuple(data), dim=0).unsqueeze(0)
 
+    def run_brush(self, first_frame, motion_brush, inference_batch_size, motion_bucket_id):
+        #original_width, original_height=576, 320
+        input_drag=motion_brush
+            
+        image_pil = first_frame.resize((self.width, self.height), Image.BILINEAR).convert('RGB')
+        
+        #visualized_drag, _ = visualize_drag_v2(first_frame_path, resized_all_points, self.width, self.height)
+        
+        first_frames_transform = transforms.Compose([
+                        lambda x: Image.fromarray(x),
+                        transforms.ToTensor(),
+                        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+                    ])
+        
+        outputs = None
+        ouput_video_list = []
+        num_inference = 1
+        for i in tqdm(range(num_inference)):
+            if not outputs:
+                first_frames = pil2arr(first_frame)
+                first_frames = repeat(first_frames_transform(first_frames), 'c h w -> b c h w', b=inference_batch_size).to(self.device)
+            else:
+                first_frames = outputs['logits_imgs'][:, -1]
+            
+            outputs = self.forward_sample(
+                                            repeat(input_drag[i*(self.model_length - 1):(i+1)*(self.model_length - 1)], 'l h w c -> b l h w c', b=inference_batch_size).to(self.device), 
+                                            first_frames,
+                                            motion_bucket_id)
+            ouput_video_list.append(outputs['logits_imgs'])
+
+        ouput_tensor = [ouput_video_list[0][0]]
+        for i in range(inference_batch_size):
+            for j in range(num_inference - 1):
+                ouput_tensor.append(ouput_video_list[j+1][i][1:])
+
+        ouput_tensor=torch.cat(ouput_tensor, dim=0)
+        data=[transforms.ToPILImage('RGB')(utils.make_grid(e.to(torch.float32).cpu(), normalize=True, value_range=(-1, 1))) for e in ouput_tensor]
+        data = [torch.unsqueeze(torch.tensor(np.array(image).astype(np.float32) / 255.0), 0) for image in data]
+        return torch.cat(tuple(data), dim=0).unsqueeze(0)
+
 class LoadCheckPointDragNUWA:
     @classmethod
     def INPUT_TYPES(cls):
@@ -337,6 +418,84 @@ class LoadCheckPointDragNUWA:
         sys.path.append(current_path)
         DragNUWA_net = Drag("cuda:0", ckpt_path, f'{comfy_path}/custom_nodes/ComfyUI-DragNUWA/DragNUWA_net.py', height, width, model_length)
         return (DragNUWA_net,)
+
+class LoadMotionBrushFromTrackingPoints:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "model": ("DragNUWA",),
+                "tracking_points": ("STRING", {"multiline": True, "default":"[[[25,25],[128,128]]]"}),
+            }
+        }
+        
+    RETURN_TYPES = ("MotionBrush",)
+    FUNCTION = "run_inference"
+    CATEGORY = "DragNUWA"
+    
+    def run_inference(self, model, tracking_points):
+        return (model.load_motionbrush_from_tracking_points(tracking_points),)
+
+class LoadMotionBrushFromOpticalFlowDirectory:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "model": ("DragNUWA",),
+                "optical_flow_directory": ("STRING", {"default": "X://path/to/optical_flow", "vhs_path_extensions": []}),
+            }
+        }
+        
+    RETURN_TYPES = ("MotionBrush",)
+    FUNCTION = "run_inference"
+    CATEGORY = "DragNUWA"
+    
+    def run_inference(self, model, optical_flow_directory):
+        return (model.load_motionbrush_from_optical_flow_directory(optical_flow_directory),)
+
+class LoadMotionBrushFromOpticalFlow:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "model": ("DragNUWA",),
+                "optical_flow": ("OPTICAL_FLOW",),
+            }
+        }
+        
+    RETURN_TYPES = ("MotionBrush",)
+    FUNCTION = "run_inference"
+    CATEGORY = "DragNUWA"
+    
+    def run_inference(self, model, optical_flow):
+        return (model.load_motionbrush_from_optical_flow(optical_flow),)
+
+class DragNUWARunMotionBrush:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "model": ("DragNUWA",),
+                "image": ("IMAGE",),
+                "motion_brush": ("MotionBrush",),
+                "inference_batch_size": ("INT", {"default": 1, "min": 1, "max": 1}),
+                "motion_bucket_id": ("INT", {"default": 4, "min": 1, "max": 100}),
+            }
+        }
+        
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "run_inference"
+    CATEGORY = "DragNUWA"
+    
+    def run_inference(self, model, image, motion_brush, inference_batch_size, motion_bucket_id):
+        image = 255.0 * image[0].cpu().numpy()
+        image_pil = Image.fromarray(np.clip(image, 0, 255).astype(np.uint8))
+        raw_w, raw_h = image_pil.size
+        resize_ratio = max(model.width/raw_w, model.height/raw_h)
+        image_pil = image_pil.resize((int(raw_w * resize_ratio), int(raw_h * resize_ratio)), Image.BILINEAR)
+        image_pil = transforms.CenterCrop((model.height, model.width))(image_pil.convert('RGB'))
+        #return model.run(image_pil, tracking_points, inference_batch_size, motion_bucket_id)
+        return model.run_brush(image_pil, motion_brush, inference_batch_size, motion_bucket_id)
 
 class DragNUWARun:
     @classmethod
@@ -588,6 +747,12 @@ class LoopEnd_IMAGE:
 NODE_CLASS_MAPPINGS = {
     "Load CheckPoint DragNUWA": LoadCheckPointDragNUWA,
     "DragNUWA Run": DragNUWARun,
+    "DragNUWA Run MotionBrush": DragNUWARunMotionBrush,
+    "Load MotionBrush From Optical Flow Directory": LoadMotionBrushFromOpticalFlowDirectory,
+    "Load MotionBrush From Optical Flow": LoadMotionBrushFromOpticalFlow,
+    "Load MotionBrush From Tracking Points": LoadMotionBrushFromTrackingPoints,
+    "DragNUWA Run MotionBrush": DragNUWARunMotionBrush,
+    "DragNUWA Run MotionBrush": DragNUWARunMotionBrush,
     "Load Pose KeyPoints": LoadPoseKeyPoints,
     "Split Tracking Points": SplitTrackingPoints,
     "Get Last Image":GetLastImage,
