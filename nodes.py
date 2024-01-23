@@ -241,7 +241,7 @@ class Drag:
         
     def load_motionbrush_from_tracking_points(self, tracking_points):
         #original_width, original_height=576, 320
-        
+        tracking_points=json.loads(tracking_points)
         input_all_points = tracking_points
         resized_all_points = [tuple([tuple([int(e1[0]*1), int(e1[1]*1)]) for e1 in e]) for e in input_all_points]
 
