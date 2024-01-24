@@ -49,5 +49,5 @@ Thanks for toyxyz's load optical flow from directory
 
 <img src="assets/optical_flow.png" raw=true>
 
-https://github.com/chaojie/ComfyUI-DragNUWA/blob/main/workflow optical_flow.json
+https://github.com/chaojie/ComfyUI-DragNUWA/blob/main/workflow_optical_flow.json
 
