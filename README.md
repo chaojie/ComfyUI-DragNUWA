@@ -30,7 +30,7 @@ Two nodes `Load CheckPoint DragNUWA` & `DragNUWA Run`
 
 ## Examples
 
-1. base workflow
+1. basic workflow
 
 <img src="assets/base_wf.png" raw=true>
 
@@ -51,3 +51,10 @@ Thanks for toyxyz's load optical flow from directory
 
 https://github.com/chaojie/ComfyUI-DragNUWA/blob/main/workflow_optical_flow.json
 
+4. motion brush
+
+need nodes "https://github.com/chaojie/ComfyUI-RAFT"
+
+<img src="assets/motionbrush.png" raw=true>
+
+https://github.com/chaojie/ComfyUI-DragNUWA/blob/main/workflow_motionbrush.json

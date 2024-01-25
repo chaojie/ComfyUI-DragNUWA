@@ -1,0 +1,689 @@
+{
+  "last_node_id": 23,
+  "last_link_id": 32,
+  "nodes": [
+    {
+      "id": 6,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        1108.1463928222656,
+        173.35031509399414
+      ],
+      "size": [
+        315,
+        412.33333333333337
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 5
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 8,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "image/gif",
+        "pingpong": false,
+        "save_image": true,
+        "crf": 20,
+        "save_metadata": true,
+        "audio_file": "",
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00777.gif",
+            "subfolder": "",
+            "type": "output",
+            "format": "image/gif"
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "DragNUWA Run MotionBrush",
+      "pos": [
+        682,
+        187
+      ],
+      "size": {
+        "0": 315,
+        "1": 122
+      },
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "DragNUWA",
+          "link": 2
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 23
+        },
+        {
+          "name": "motion_brush",
+          "type": "MotionBrush",
+          "link": 32
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            5
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DragNUWA Run MotionBrush"
+      },
+      "widgets_values": [
+        1,
+        4
+      ]
+    },
+    {
+      "id": 18,
+      "type": "ImageResize+",
+      "pos": [
+        44.8001708984375,
+        223.39999389648438
+      ],
+      "size": {
+        "0": 315,
+        "1": 170
+      },
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 22
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            23
+          ],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": null,
+          "shape": 3
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageResize+"
+      },
+      "widgets_values": [
+        576,
+        320,
+        "nearest",
+        false
+      ]
+    },
+    {
+      "id": 13,
+      "type": "LoadImage",
+      "pos": [
+        -486,
+        360
+      ],
+      "size": [
+        315,
+        314
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            22
+          ],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            19
+          ],
+          "shape": 3,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "clipspace/clipspace-mask-212591.20000004768.png [input]",
+        "image"
+      ]
+    },
+    {
+      "id": 17,
+      "type": "ResizeMask",
+      "pos": [
+        87,
+        764
+      ],
+      "size": {
+        "0": 315,
+        "1": 146
+      },
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 19
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": [
+            20
+          ],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": null,
+          "shape": 3
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ResizeMask"
+      },
+      "widgets_values": [
+        576,
+        320,
+        false
+      ]
+    },
+    {
+      "id": 20,
+      "type": "LoadImage",
+      "pos": [
+        -538,
+        833
+      ],
+      "size": [
+        315,
+        314.00001525878906
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": null,
+          "shape": 3
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            25
+          ],
+          "shape": 3,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "clipspace/clipspace-mask-134301.png [input]",
+        "image"
+      ]
+    },
+    {
+      "id": 21,
+      "type": "ResizeMask",
+      "pos": [
+        47.222798553466646,
+        1008.6039813842772
+      ],
+      "size": {
+        "0": 315,
+        "1": 146
+      },
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 25
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": [
+            26
+          ],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": null,
+          "shape": 3
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ResizeMask"
+      },
+      "widgets_values": [
+        576,
+        320,
+        false
+      ]
+    },
+    {
+      "id": 22,
+      "type": "BrushMotion",
+      "pos": [
+        576.4285469360349,
+        977.7249785156248
+      ],
+      "size": {
+        "0": 304.79998779296875,
+        "1": 66
+      },
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "DragNUWA",
+          "link": 28
+        },
+        {
+          "name": "motion_brush",
+          "type": "MotionBrush",
+          "link": 27
+        },
+        {
+          "name": "brush_mask",
+          "type": "MASK",
+          "link": 26
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MotionBrush",
+          "type": "MotionBrush",
+          "links": [
+            30
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "BrushMotion"
+      }
+    },
+    {
+      "id": 3,
+      "type": "Load CheckPoint DragNUWA",
+      "pos": [
+        -68,
+        439
+      ],
+      "size": {
+        "0": 315,
+        "1": 106
+      },
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "model",
+          "type": "DragNUWA",
+          "links": [
+            2,
+            13,
+            28,
+            31
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Load CheckPoint DragNUWA"
+      },
+      "widgets_values": [
+        "drag_nuwa_svd.pth",
+        "576x320",
+        14
+      ]
+    },
+    {
+      "id": 23,
+      "type": "CompositeMotionBrush",
+      "pos": [
+        932.0717632446285,
+        724.3026156311034
+      ],
+      "size": {
+        "0": 393,
+        "1": 98
+      },
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "DragNUWA",
+          "link": 31
+        },
+        {
+          "name": "motion_brush_layer0",
+          "type": "MotionBrush",
+          "link": 29
+        },
+        {
+          "name": "motion_brush_layer1",
+          "type": "MotionBrush",
+          "link": 30
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MotionBrush",
+          "type": "MotionBrush",
+          "links": [
+            32
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CompositeMotionBrush"
+      },
+      "widgets_values": [
+        "override"
+      ]
+    },
+    {
+      "id": 12,
+      "type": "BrushMotion",
+      "pos": [
+        455,
+        747
+      ],
+      "size": {
+        "0": 304.79998779296875,
+        "1": 66
+      },
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "DragNUWA",
+          "link": 13
+        },
+        {
+          "name": "motion_brush",
+          "type": "MotionBrush",
+          "link": 16
+        },
+        {
+          "name": "brush_mask",
+          "type": "MASK",
+          "link": 20
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MotionBrush",
+          "type": "MotionBrush",
+          "links": [
+            29
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "BrushMotion"
+      }
+    },
+    {
+      "id": 15,
+      "type": "Load MotionBrush",
+      "pos": [
+        -4,
+        612
+      ],
+      "size": {
+        "0": 315,
+        "1": 58
+      },
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "MotionBrush",
+          "type": "MotionBrush",
+          "links": [
+            16,
+            27
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Load MotionBrush"
+      },
+      "widgets_values": [
+        "/home/admin/ComfyUI/output/motionbrush/smoke/smoke2/smoke2.npy"
+      ]
+    }
+  ],
+  "links": [
+    [
+      2,
+      3,
+      0,
+      4,
+      0,
+      "DragNUWA"
+    ],
+    [
+      5,
+      4,
+      0,
+      6,
+      0,
+      "IMAGE"
+    ],
+    [
+      13,
+      3,
+      0,
+      12,
+      0,
+      "DragNUWA"
+    ],
+    [
+      16,
+      15,
+      0,
+      12,
+      1,
+      "MotionBrush"
+    ],
+    [
+      19,
+      13,
+      1,
+      17,
+      0,
+      "MASK"
+    ],
+    [
+      20,
+      17,
+      0,
+      12,
+      2,
+      "MASK"
+    ],
+    [
+      22,
+      13,
+      0,
+      18,
+      0,
+      "IMAGE"
+    ],
+    [
+      23,
+      18,
+      0,
+      4,
+      1,
+      "IMAGE"
+    ],
+    [
+      25,
+      20,
+      1,
+      21,
+      0,
+      "MASK"
+    ],
+    [
+      26,
+      21,
+      0,
+      22,
+      2,
+      "MASK"
+    ],
+    [
+      27,
+      15,
+      0,
+      22,
+      1,
+      "MotionBrush"
+    ],
+    [
+      28,
+      3,
+      0,
+      22,
+      0,
+      "DragNUWA"
+    ],
+    [
+      29,
+      12,
+      0,
+      23,
+      1,
+      "MotionBrush"
+    ],
+    [
+      30,
+      22,
+      0,
+      23,
+      2,
+      "MotionBrush"
+    ],
+    [
+      31,
+      3,
+      0,
+      23,
+      0,
+      "DragNUWA"
+    ],
+    [
+      32,
+      23,
+      0,
+      4,
+      2,
+      "MotionBrush"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}
