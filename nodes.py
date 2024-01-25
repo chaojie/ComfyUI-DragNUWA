@@ -273,14 +273,9 @@ class Drag:
         
     def load_motionbrush_from_optical_flow(self, optical_flow):
         motionbrush = torch.zeros(self.model_length - 1, self.height, self.width, 2)
-        print(motionbrush.shape)
         for i in range(self.model_length - 1):
-            print(optical_flow[i].shape)
             motionbrush[i] = F.interpolate(optical_flow[i].unsqueeze(0).permute(0, 3, 1, 2).float() , size=(self.height,self.width), mode='bilinear', align_corners=True).squeeze().permute(1, 2, 0)
-            print(motionbrush[i].shape)
-        print(motionbrush.shape)
-        return motionbrush 
-        
+        return motionbrush
         
     def run_2(self, first_frame, tracking_points, inference_batch_size, motion_bucket_id, use_optical, flow_path):
         #original_width, original_height=576, 320
@@ -744,14 +739,28 @@ class LoopEnd_IMAGE:
         loop.next = send_to_next_loop
         return ()
 
+class LoadMotionBrushFromOpticalFlowWithoutModel:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "optical_flow": ("OPTICAL_FLOW",),
+            }
+        }
+        
+    RETURN_TYPES = ("MotionBrush",)
+    FUNCTION = "run_inference"
+    CATEGORY = "DragNUWA"
+    def run_inference(self, optical_flow):
+        return (optical_flow,)
+
 NODE_CLASS_MAPPINGS = {
     "Load CheckPoint DragNUWA": LoadCheckPointDragNUWA,
     "DragNUWA Run": DragNUWARun,
-    "DragNUWA Run MotionBrush": DragNUWARunMotionBrush,
     "Load MotionBrush From Optical Flow Directory": LoadMotionBrushFromOpticalFlowDirectory,
     "Load MotionBrush From Optical Flow": LoadMotionBrushFromOpticalFlow,
+    "Load MotionBrush From Optical Flow Without Model": LoadMotionBrushFromOpticalFlowWithoutModel,
     "Load MotionBrush From Tracking Points": LoadMotionBrushFromTrackingPoints,
-    "DragNUWA Run MotionBrush": DragNUWARunMotionBrush,
     "DragNUWA Run MotionBrush": DragNUWARunMotionBrush,
     "Load Pose KeyPoints": LoadPoseKeyPoints,
     "Split Tracking Points": SplitTrackingPoints,
@@ -759,5 +768,5 @@ NODE_CLASS_MAPPINGS = {
     "Get First Image":GetFirstImage,
     "Loop": Loop,
     "LoopStart_IMAGE":LoopStart_IMAGE,
-    "LoopEnd_IMAGE":LoopEnd_IMAGE
+    "LoopEnd_IMAGE":LoopEnd_IMAGE,
 }
