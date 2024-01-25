@@ -774,8 +774,6 @@ class MotionBrashTransform:
     def run_inference(self, motion_brush,left,top,rotate,scalex,scaley):
         return (motion_brush,)
 
-
-
 class BrushMotion:
     @classmethod
     def INPUT_TYPES(cls):
@@ -813,6 +811,33 @@ class BrushMotion:
 
         return (results,) 
 
+CompositeMotionBrushMode=['override']
+class CompositeMotionBrush:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "model": ("DragNUWA",),
+                "motion_brush_layer0": ("MotionBrush",),
+                "motion_brush_layer1": ("MotionBrush",),
+                "mode": (CompositeMotionBrushMode,{"default":"override"}),
+            }
+        }
+        
+    RETURN_TYPES = ("MotionBrush",)
+    FUNCTION = "run_inference"
+    CATEGORY = "DragNUWA"
+    def run_inference(self, model, motion_brush_layer0, motion_brush_layer1, mode):
+        results = motion_brush_layer0 #torch.zeros(model.model_length - 1, model.height, model.width, 2) ##input points
+        for i in range(model.model_length - 1):
+            for x in range(0,model.width):
+                for y in range(0,model.height):
+                    if float(motion_brush_layer1[i][y][x][0])>0.0001 and motion_brush_layer1[i][y][x][1]>0.0001:
+                        results[i][y][x][0]=motion_brush_layer1[i][y][x][0]
+                        results[i][y][x][1]=motion_brush_layer1[i][y][x][1]
+
+        return (results,) 
+
 NODE_CLASS_MAPPINGS = {
     "Load CheckPoint DragNUWA": LoadCheckPointDragNUWA,
     "DragNUWA Run": DragNUWARun,
@@ -822,6 +847,7 @@ NODE_CLASS_MAPPINGS = {
     "Load MotionBrush From Tracking Points": LoadMotionBrushFromTrackingPoints,
     "DragNUWA Run MotionBrush": DragNUWARunMotionBrush,
     "BrushMotion":BrushMotion,
+    "CompositeMotionBrush":CompositeMotionBrush,
     "Load Pose KeyPoints": LoadPoseKeyPoints,
     "Split Tracking Points": SplitTrackingPoints,
     "Get Last Image":GetLastImage,
