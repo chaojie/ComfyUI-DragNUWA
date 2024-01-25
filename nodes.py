@@ -806,8 +806,10 @@ class BrushMotion:
             temp = F.interpolate(motionbrush[i].unsqueeze(0).permute(0, 3, 1, 2).float() , size=(box[3]-box[1],box[2]-box[0]), mode='bilinear', align_corners=True).squeeze().permute(1, 2, 0)
             for x in range(box[0],box[2]):
                 for y in range(box[1],box[3]):
-                    results[i][y][x][0]=temp[y-box[1]][x-box[0]][0]
-                    results[i][y][x][1]=temp[y-box[1]][x-box[0]][1]
+                    #print(brush_mask.shape)
+                    if brush_mask[0][y][x]:
+                        results[i][y][x][0]=temp[y-box[1]][x-box[0]][0]
+                        results[i][y][x][1]=temp[y-box[1]][x-box[0]][1]
 
         return (results,) 
 
