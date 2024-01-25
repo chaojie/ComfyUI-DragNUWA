@@ -754,6 +754,65 @@ class LoadMotionBrushFromOpticalFlowWithoutModel:
     def run_inference(self, optical_flow):
         return (optical_flow,)
 
+class MotionBrashTransform:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "motion_brush": ("MotionBrush",),
+                "left": ("INT", {"default": 0}),
+                "top": ("INT", {"default": 0}),
+                "rotate": ("INT", {"default": 0}),
+                "scalex": ("INT", {"default": 1}),
+                "scaley": ("INT", {"default": 1}),
+            }
+        }
+        
+    RETURN_TYPES = ("MotionBrush",)
+    FUNCTION = "run_inference"
+    CATEGORY = "DragNUWA"
+    def run_inference(self, motion_brush,left,top,rotate,scalex,scaley):
+        return (motion_brush,)
+
+
+
+class BrushMotion:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "model": ("DragNUWA",),
+                "motion_brush": ("MotionBrush",),
+                "brush_mask": ("MASK",),
+            }
+        }
+        
+    RETURN_TYPES = ("MotionBrush",)
+    FUNCTION = "run_inference"
+    CATEGORY = "DragNUWA"
+    def run_inference(self, model, motion_brush, brush_mask):
+        from torchvision.ops import masks_to_boxes
+        boxes = masks_to_boxes(brush_mask)
+        box=boxes[0].int().tolist()
+        print(box)
+        xratio=(box[2]-box[0])/(motion_brush.shape[2]) #width
+        yratio=(box[3]-box[1])/(motion_brush.shape[1]) #height
+        xmotionbrush=motion_brush[:,:,:,:1]
+        ymotionbrush=motion_brush[:,:,:,1:]
+        xmotionbrush=xmotionbrush*xratio
+        ymotionbrush=ymotionbrush*yratio
+        motionbrush=torch.cat([xmotionbrush,ymotionbrush],3)
+
+        results = torch.zeros(model.model_length - 1, model.height, model.width, 2) ##input points
+        for i in range(model.model_length - 1):
+            temp = F.interpolate(motionbrush[i].unsqueeze(0).permute(0, 3, 1, 2).float() , size=(box[3]-box[1],box[2]-box[0]), mode='bilinear', align_corners=True).squeeze().permute(1, 2, 0)
+            for x in range(box[0],box[2]):
+                for y in range(box[1],box[3]):
+                    results[i][y][x][0]=temp[y-box[1]][x-box[0]][0]
+                    results[i][y][x][1]=temp[y-box[1]][x-box[0]][1]
+
+        return (results,) 
+
 NODE_CLASS_MAPPINGS = {
     "Load CheckPoint DragNUWA": LoadCheckPointDragNUWA,
     "DragNUWA Run": DragNUWARun,
@@ -762,6 +821,7 @@ NODE_CLASS_MAPPINGS = {
     "Load MotionBrush From Optical Flow Without Model": LoadMotionBrushFromOpticalFlowWithoutModel,
     "Load MotionBrush From Tracking Points": LoadMotionBrushFromTrackingPoints,
     "DragNUWA Run MotionBrush": DragNUWARunMotionBrush,
+    "BrushMotion":BrushMotion,
     "Load Pose KeyPoints": LoadPoseKeyPoints,
     "Split Tracking Points": SplitTrackingPoints,
     "Get Last Image":GetLastImage,
