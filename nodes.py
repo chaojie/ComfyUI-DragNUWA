@@ -431,6 +431,46 @@ class LoadMotionBrushFromTrackingPoints:
     def run_inference(self, model, tracking_points):
         return (model.load_motionbrush_from_tracking_points(tracking_points),)
 
+class LoadMotionBrushFromTrackingPointsWithoutModel:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "model_length": ("INT", {"default": 14}),
+                "width": ("INT", {"default": 18}),
+                "height": ("INT", {"default": 10}),
+                "tracking_points": ("STRING", {"multiline": True, "default":"[[[1,1],[2,2]]]"}),
+            }
+        }
+        
+    RETURN_TYPES = ("MotionBrush",)
+    FUNCTION = "run_inference"
+    CATEGORY = "DragNUWA"
+    
+    def run_inference(self, model_length, width, height, tracking_points):
+        #original_width, original_height=576, 320
+        tracking_points=json.loads(tracking_points)
+        input_all_points = tracking_points
+        resized_all_points = [tuple([tuple([int(e1[0]*1), int(e1[1]*1)]) for e1 in e]) for e in input_all_points]
+
+        motionbrush = torch.zeros(model_length- 1, height, width, 2) ##input points
+        for splited_track in resized_all_points:
+            if len(splited_track) == 1: # stationary point
+                displacement_point = tuple([splited_track[0][0] + 1, splited_track[0][1] + 1])
+                splited_track = tuple([splited_track[0], displacement_point])
+            # interpolate the track
+            splited_track = interpolate_trajectory(splited_track, model_length)
+            splited_track = splited_track[:model_length]
+            if len(splited_track) < model_length:
+                splited_track = splited_track + [splited_track[-1]] * (model_length -len(splited_track))
+            for i in range(model_length - 1):
+                start_point = splited_track[i]
+                end_point = splited_track[i+1]
+                motionbrush[i][int(start_point[1])][int(start_point[0])][0] = end_point[0] - start_point[0]
+                motionbrush[i][int(start_point[1])][int(start_point[0])][1] = end_point[1] - start_point[1]   
+
+        return motionbrush 
+
 class LoadMotionBrushFromOpticalFlowDirectory:
     @classmethod
     def INPUT_TYPES(cls):
@@ -834,7 +874,7 @@ class CompositeMotionBrush:
         for i in range(model.model_length - 1):
             for x in range(0,model.width):
                 for y in range(0,model.height):
-                    if float(motion_brush_layer1[i][y][x][0])>0.0001 and motion_brush_layer1[i][y][x][1]>0.0001:
+                    if float(motion_brush_layer1[i][y][x][0])>0 or float(motion_brush_layer1[i][y][x][1])>0:
                         results[i][y][x][0]=motion_brush_layer1[i][y][x][0]
                         results[i][y][x][1]=motion_brush_layer1[i][y][x][1]
 
@@ -847,6 +887,7 @@ NODE_CLASS_MAPPINGS = {
     "Load MotionBrush From Optical Flow": LoadMotionBrushFromOpticalFlow,
     "Load MotionBrush From Optical Flow Without Model": LoadMotionBrushFromOpticalFlowWithoutModel,
     "Load MotionBrush From Tracking Points": LoadMotionBrushFromTrackingPoints,
+    "Load MotionBrush From Tracking Points Without Model": LoadMotionBrushFromTrackingPointsWithoutModel,
     "DragNUWA Run MotionBrush": DragNUWARunMotionBrush,
     "BrushMotion":BrushMotion,
     "CompositeMotionBrush":CompositeMotionBrush,
