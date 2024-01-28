@@ -414,6 +414,70 @@ class LoadCheckPointDragNUWA:
         DragNUWA_net = Drag("cuda:0", ckpt_path, f'{comfy_path}/custom_nodes/ComfyUI-DragNUWA/DragNUWA_net.py', height, width, model_length)
         return (DragNUWA_net,)
 
+class InstantMotionBrush:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "model_length": ("INT", {"default": 14}),
+                "width": ("INT", {"default": 36}),
+                "height": ("INT", {"default": 20}),
+                "action": (["left","right","up","down","zoomin","zoomout"], {"default":"left"}),
+                "speed": ("FLOAT", {"default": 0.1}),
+            }
+        }
+        
+    RETURN_TYPES = ("MotionBrush",)
+    FUNCTION = "run_inference"
+    CATEGORY = "DragNUWA"
+    def run_inference(self, model_length, width, height, action, speed):
+        speed=speed/255
+        motion_brush = torch.zeros(model_length- 1, height, width, 2)
+        xmotionbrush=motion_brush[:,:,:,:1]
+        ymotionbrush=motion_brush[:,:,:,1:]
+        if action=="zoomin":
+            for i in range(model_length - 1):
+                for j in range(height-1):
+                    for k in range(width-1):
+                        motion_brush[i][j][k][0]=speed/(width/2)*(k-width/2)
+                        motion_brush[i][j][k][1]=speed/(height/2)*(j-height/2)
+        elif action=="zoomout":
+            for i in range(model_length - 1):
+                for j in range(height-1):
+                    for k in range(width-1):
+                        motion_brush[i][j][k][0]=-speed/(width/2)*(k-width/2)
+                        motion_brush[i][j][k][1]=-speed/(height/2)*(j-height/2)
+        else:
+            if action=="left":
+                for i in range(model_length - 1):
+                    for j in range(height-1):
+                        for k in range(width-1):
+                            if k-speed>=0:
+                                motion_brush[i][j][k][0]=-speed
+            elif action=="right":
+                for i in range(model_length - 1):
+                    for j in range(height-1):
+                        for k in range(width-1):
+                            if k+speed<width:
+                                motion_brush[i][j][k][0]=speed
+            elif action=="up":
+                for i in range(model_length - 1):
+                    for j in range(height-1):
+                        for k in range(width-1):
+                            if j-speed>=0:
+                                motion_brush[i][j][k][1]=-speed
+            elif action=="down":
+                for i in range(model_length - 1):
+                    for j in range(height-1):
+                        for k in range(width-1):
+                            if j+speed<height:
+                                motion_brush[i][j][k][1]=speed
+        #xmotionbrush=torch.clamp(xmotionbrush,0,width-1)
+        #ymotionbrush=torch.clamp(ymotionbrush,0,height-1)
+        #motion_brush=torch.cat([xmotionbrush,ymotionbrush],3)
+        #print(f'{motion_brush}')
+        return (motion_brush,)
+    
 class LoadMotionBrushFromTrackingPoints:
     @classmethod
     def INPUT_TYPES(cls):
@@ -437,8 +501,8 @@ class LoadMotionBrushFromTrackingPointsWithoutModel:
         return {
             "required": {
                 "model_length": ("INT", {"default": 14}),
-                "width": ("INT", {"default": 18}),
-                "height": ("INT", {"default": 10}),
+                "width": ("INT", {"default": 36}),
+                "height": ("INT", {"default": 20}),
                 "tracking_points": ("STRING", {"multiline": True, "default":"[[[1,1],[2,2]]]"}),
             }
         }
@@ -890,6 +954,7 @@ NODE_CLASS_MAPPINGS = {
     "Load MotionBrush From Tracking Points Without Model": LoadMotionBrushFromTrackingPointsWithoutModel,
     "DragNUWA Run MotionBrush": DragNUWARunMotionBrush,
     "BrushMotion":BrushMotion,
+    "InstantMotionBrush":InstantMotionBrush,
     "CompositeMotionBrush":CompositeMotionBrush,
     "Load Pose KeyPoints": LoadPoseKeyPoints,
     "Split Tracking Points": SplitTrackingPoints,
