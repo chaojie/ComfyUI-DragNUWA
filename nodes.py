@@ -351,7 +351,7 @@ class Drag:
     def run_brush(self, first_frame, motion_brush, inference_batch_size, motion_bucket_id):
         #original_width, original_height=576, 320
         input_drag=motion_brush
-            
+        print(input_drag.shape)
         image_pil = first_frame.resize((self.width, self.height), Image.BILINEAR).convert('RGB')
         
         #visualized_drag, _ = visualize_drag_v2(first_frame_path, resized_all_points, self.width, self.height)
@@ -414,16 +414,16 @@ class LoadCheckPointDragNUWA:
         DragNUWA_net = Drag("cuda:0", ckpt_path, f'{comfy_path}/custom_nodes/ComfyUI-DragNUWA/DragNUWA_net.py', height, width, model_length)
         return (DragNUWA_net,)
 
-class InstantMotionBrush:
+class InstantCameraMotionBrush:
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
                 "model_length": ("INT", {"default": 14}),
-                "width": ("INT", {"default": 36}),
-                "height": ("INT", {"default": 20}),
+                "width": ("INT", {"default": 576}),
+                "height": ("INT", {"default": 320}),
                 "action": (["left","right","up","down","zoomin","zoomout"], {"default":"left"}),
-                "speed": ("FLOAT", {"default": 0.1}),
+                "speed": ("FLOAT", {"default": 1}),
             }
         }
         
@@ -431,51 +431,315 @@ class InstantMotionBrush:
     FUNCTION = "run_inference"
     CATEGORY = "DragNUWA"
     def run_inference(self, model_length, width, height, action, speed):
-        speed=speed/255
-        motion_brush = torch.zeros(model_length- 1, height, width, 2)
+        #speed=speed/255
+        motion_brush = torch.zeros(model_length-1, height, width, 2)
         xmotionbrush=motion_brush[:,:,:,:1]
         ymotionbrush=motion_brush[:,:,:,1:]
+        xcount=10
+        ycount=10
+        if width<xcount:
+            xcount=width
+        if height<ycount:
+            ycount=height
+        xratio=(width)/xcount
+        yratio=(height)/ycount
+        model_width=width
+        model_height=height
+        box=[0,0,width,height]
+        
+        tracking_points=[]
+
         if action=="zoomin":
-            for i in range(model_length - 1):
-                for j in range(height-1):
-                    for k in range(width-1):
-                        motion_brush[i][j][k][0]=speed/(width/2)*(k-width/2)
-                        motion_brush[i][j][k][1]=speed/(height/2)*(j-height/2)
+            for j in range(ycount-1):
+                for k in range(xcount-1):
+                    item=[]
+                    for i in range(model_length - 1):
+                        xi=int(k*xratio)+i*speed/(width/2)*(k*xratio-width/2)
+                        yi=int(j*yratio)+i*speed/(height/2)*(j*yratio-height/2)
+                        if xi>model_width-1:
+                            xi=model_width-1
+                        if yi>model_height-1:
+                            yi=model_height-1
+                        if xi<0:
+                            xi=0
+                        if yi<0:
+                            yi=0
+                        item.append([xi,yi])
+                    tracking_points.append(item)
         elif action=="zoomout":
-            for i in range(model_length - 1):
-                for j in range(height-1):
-                    for k in range(width-1):
-                        motion_brush[i][j][k][0]=-speed/(width/2)*(k-width/2)
-                        motion_brush[i][j][k][1]=-speed/(height/2)*(j-height/2)
+            for j in range(ycount-1):
+                for k in range(xcount-1):
+                    item=[]
+                    for i in range(model_length - 1):
+                        xi=int(k*xratio)+i*-speed/(width/2)*(k*xratio-width/2)
+                        yi=int(j*yratio)+i*-speed/(height/2)*(j*yratio-height/2)
+                        if xi>model_width-1:
+                            xi=model_width-1
+                        if yi>model_height-1:
+                            yi=model_height-1
+                        if xi<0:
+                            xi=0
+                        if yi<0:
+                            yi=0
+                        item.append([xi,yi])
+                    tracking_points.append(item)
         else:
             if action=="left":
-                for i in range(model_length - 1):
-                    for j in range(height-1):
-                        for k in range(width-1):
-                            if k-speed>=0:
-                                motion_brush[i][j][k][0]=-speed
+                for j in range(ycount-1):
+                    for k in range(xcount-1):
+                        item=[]
+                        for i in range(model_length - 1):
+                            xi=int(k*xratio)+i*-speed
+                            yi=int(j*yratio)
+                            if xi>model_width-1:
+                                xi=model_width-1
+                            if yi>model_height-1:
+                                yi=model_height-1
+                            if xi<0:
+                                xi=0
+                            if yi<0:
+                                yi=0
+                            item.append([xi,yi])
+                        tracking_points.append(item)
             elif action=="right":
-                for i in range(model_length - 1):
-                    for j in range(height-1):
-                        for k in range(width-1):
-                            if k+speed<width:
-                                motion_brush[i][j][k][0]=speed
+                for j in range(ycount-1):
+                    for k in range(xcount-1):
+                        item=[]
+                        for i in range(model_length - 1):
+                            xi=int(k*xratio)+i*speed
+                            yi=int(j*yratio)
+                            if xi>model_width-1:
+                                xi=model_width-1
+                            if yi>model_height-1:
+                                yi=model_height-1
+                            if xi<0:
+                                xi=0
+                            if yi<0:
+                                yi=0
+                            item.append([xi,yi])
+                        tracking_points.append(item)
             elif action=="up":
-                for i in range(model_length - 1):
-                    for j in range(height-1):
-                        for k in range(width-1):
-                            if j-speed>=0:
-                                motion_brush[i][j][k][1]=-speed
+                for j in range(ycount-1):
+                    for k in range(xcount-1):
+                        item=[]
+                        for i in range(model_length - 1):
+                            xi=int(k*xratio)
+                            yi=int(j*yratio)+i*-speed
+                            if xi>model_width-1:
+                                xi=model_width-1
+                            if yi>model_height-1:
+                                yi=model_height-1
+                            if xi<0:
+                                xi=0
+                            if yi<0:
+                                yi=0
+                            item.append([xi,yi])
+                        tracking_points.append(item)
             elif action=="down":
-                for i in range(model_length - 1):
-                    for j in range(height-1):
-                        for k in range(width-1):
-                            if j+speed<height:
-                                motion_brush[i][j][k][1]=speed
-        #xmotionbrush=torch.clamp(xmotionbrush,0,width-1)
-        #ymotionbrush=torch.clamp(ymotionbrush,0,height-1)
-        #motion_brush=torch.cat([xmotionbrush,ymotionbrush],3)
-        #print(f'{motion_brush}')
+                for j in range(ycount-1):
+                    for k in range(xcount-1):
+                        item=[]
+                        for i in range(model_length - 1):
+                            xi=int(k*xratio)
+                            yi=int(j*yratio)+i*speed
+                            if xi>model_width-1:
+                                xi=model_width-1
+                            if yi>model_height-1:
+                                yi=model_height-1
+                            if xi<0:
+                                xi=0
+                            if yi<0:
+                                yi=0
+                            item.append([xi,yi])
+                        tracking_points.append(item)
+        #print(tracking_points)
+        motion_brush=load_motionbrush_from_tracking_points_without_model(model_length,model_width,model_height,tracking_points)
+        return (motion_brush,)
+
+def load_motionbrush_from_tracking_points_without_model(model_length, width, height, tracking_points):
+    #original_width, original_height=576, 320
+    input_all_points = tracking_points
+    resized_all_points = [tuple([tuple([int(e1[0]*1), int(e1[1]*1)]) for e1 in e]) for e in input_all_points]
+
+    motionbrush = torch.zeros(model_length- 1, height, width, 2) ##input points
+    for splited_track in resized_all_points:
+        if len(splited_track) == 1: # stationary point
+            displacement_point = tuple([splited_track[0][0] + 1, splited_track[0][1] + 1])
+            splited_track = tuple([splited_track[0], displacement_point])
+        # interpolate the track
+        splited_track = interpolate_trajectory(splited_track, model_length)
+        splited_track = splited_track[:model_length]
+        if len(splited_track) < model_length:
+            splited_track = splited_track + [splited_track[-1]] * (model_length -len(splited_track))
+        for i in range(model_length - 1):
+            start_point = splited_track[i]
+            end_point = splited_track[i+1]
+            motionbrush[i][int(start_point[1])][int(start_point[0])][0] = end_point[0] - start_point[0]
+            motionbrush[i][int(start_point[1])][int(start_point[0])][1] = end_point[1] - start_point[1]  
+    return motionbrush 
+
+class InstantObjectMotionBrush:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "model_length": ("INT", {"default": 14}),
+                "brush_mask": ("MASK",),
+                "action": (["left","right","up","down","zoomin","zoomout"], {"default":"left"}),
+                "speed": ("FLOAT", {"default": 5}),
+            }
+        }
+        
+    RETURN_TYPES = ("MotionBrush",)
+    FUNCTION = "run_inference"
+    CATEGORY = "DragNUWA"
+    def run_inference(self, model_length, brush_mask, action, speed):
+        model_width=brush_mask.shape[2]
+        model_height=brush_mask.shape[1]
+        from torchvision.ops import masks_to_boxes
+        boxes = masks_to_boxes(brush_mask)
+        box=boxes[0].int().tolist()
+        print(f'model_width{model_width}model_height{model_height}box{box}')
+        xcount=10
+        ycount=10
+        if box[2]-box[0]<xcount:
+            xcount=box[2]-box[0]
+        if box[3]-box[1]<ycount:
+            ycount=box[3]-box[1]
+        xratio=(box[2]-box[0])/xcount
+        yratio=(box[3]-box[1])/ycount
+        
+        tracking_points=[]
+        
+        if action=="zoomin":
+            for j in range(ycount-1):
+                for k in range(xcount-1):
+                    if not bool(brush_mask[0][box[1]+int(j*yratio)][box[0]+int(k*xratio)]):
+                        continue
+                    item=[]
+                    for i in range(model_length - 1):
+                        width=box[2]-box[0]
+                        height=box[3]-box[1]
+                        xi=box[0]+int(k*xratio)+i*speed/(width/2)*(k*xratio-width/2)
+                        yi=box[1]+int(j*yratio)+i*speed/(height/2)*(j*yratio-height/2)
+                        if xi>model_width-1:
+                            xi=model_width-1
+                        if yi>model_height-1:
+                            yi=model_height-1
+                        if xi<0:
+                            xi=0
+                        if yi<0:
+                            yi=0
+                        item.append([xi,yi])
+                    tracking_points.append(item)
+        elif action=="zoomout":
+            for j in range(ycount-1):
+                for k in range(xcount-1):
+                    if not bool(brush_mask[0][box[1]+int(j*yratio)][box[0]+int(k*xratio)]):
+                        continue
+                    item=[]
+                    for i in range(model_length - 1):
+                        width=box[2]-box[0]
+                        height=box[3]-box[1]
+                        xi=box[0]+int(k*xratio)+i*-speed/(width/2)*(k*xratio-width/2)
+                        yi=box[1]+int(j*yratio)+i*-speed/(height/2)*(j*yratio-height/2)
+                        if xi>model_width-1:
+                            xi=model_width-1
+                        if yi>model_height-1:
+                            yi=model_height-1
+                        if xi<0:
+                            xi=0
+                        if yi<0:
+                            yi=0
+                        item.append([xi,yi])
+                    tracking_points.append(item)
+        else:
+            if action=="left":
+                for j in range(ycount-1):
+                    for k in range(xcount-1):
+                        if not bool(brush_mask[0][box[1]+int(j*yratio)][box[0]+int(k*xratio)]):
+                            continue
+                        item=[]
+                        for i in range(model_length - 1):
+                            width=box[2]-box[0]
+                            height=box[3]-box[1]
+                            xi=box[0]+int(k*xratio)+i*-speed
+                            yi=box[1]+int(j*yratio)
+                            if xi>model_width-1:
+                                xi=model_width-1
+                            if yi>model_height-1:
+                                yi=model_height-1
+                            if xi<0:
+                                xi=0
+                            if yi<0:
+                                yi=0
+                            item.append([xi,yi])
+                        tracking_points.append(item)
+            elif action=="right":
+                for j in range(ycount-1):
+                    for k in range(xcount-1):
+                        if not bool(brush_mask[0][box[1]+int(j*yratio)][box[0]+int(k*xratio)]):
+                            continue
+                        item=[]
+                        for i in range(model_length - 1):
+                            width=box[2]-box[0]
+                            height=box[3]-box[1]
+                            xi=box[0]+int(k*xratio)+i*speed
+                            yi=box[1]+int(j*yratio)
+                            if xi>model_width-1:
+                                xi=model_width-1
+                            if yi>model_height-1:
+                                yi=model_height-1
+                            if xi<0:
+                                xi=0
+                            if yi<0:
+                                yi=0
+                            item.append([xi,yi])
+                        tracking_points.append(item)
+            elif action=="up":
+                for j in range(ycount-1):
+                    for k in range(xcount-1):
+                        if not bool(brush_mask[0][box[1]+int(j*yratio)][box[0]+int(k*xratio)]):
+                            continue
+                        item=[]
+                        for i in range(model_length - 1):
+                            width=box[2]-box[0]
+                            height=box[3]-box[1]
+                            xi=box[0]+int(k*xratio)
+                            yi=box[1]+int(j*yratio)+i*-speed
+                            if xi>model_width-1:
+                                xi=model_width-1
+                            if yi>model_height-1:
+                                yi=model_height-1
+                            if xi<0:
+                                xi=0
+                            if yi<0:
+                                yi=0
+                            item.append([xi,yi])
+                        tracking_points.append(item)
+            elif action=="down":
+                for j in range(ycount-1):
+                    for k in range(xcount-1):
+                        if not bool(brush_mask[0][box[1]+int(j*yratio)][box[0]+int(k*xratio)]):
+                            continue
+                        item=[]
+                        for i in range(model_length - 1):
+                            width=box[2]-box[0]
+                            height=box[3]-box[1]
+                            xi=box[0]+int(k*xratio)
+                            yi=box[1]+int(j*yratio)+i*speed
+                            if xi>model_width-1:
+                                xi=model_width-1
+                            if yi>model_height-1:
+                                yi=model_height-1
+                            if xi<0:
+                                xi=0
+                            if yi<0:
+                                yi=0
+                            item.append([xi,yi])
+                        tracking_points.append(item)
+        #print(tracking_points)
+        motion_brush=load_motionbrush_from_tracking_points_without_model(model_length,model_width,model_height,tracking_points)
         return (motion_brush,)
     
 class LoadMotionBrushFromTrackingPoints:
@@ -495,6 +759,7 @@ class LoadMotionBrushFromTrackingPoints:
     def run_inference(self, model, tracking_points):
         return (model.load_motionbrush_from_tracking_points(tracking_points),)
 
+
 class LoadMotionBrushFromTrackingPointsWithoutModel:
     @classmethod
     def INPUT_TYPES(cls):
@@ -512,28 +777,9 @@ class LoadMotionBrushFromTrackingPointsWithoutModel:
     CATEGORY = "DragNUWA"
     
     def run_inference(self, model_length, width, height, tracking_points):
-        #original_width, original_height=576, 320
         tracking_points=json.loads(tracking_points)
-        input_all_points = tracking_points
-        resized_all_points = [tuple([tuple([int(e1[0]*1), int(e1[1]*1)]) for e1 in e]) for e in input_all_points]
-
-        motionbrush = torch.zeros(model_length- 1, height, width, 2) ##input points
-        for splited_track in resized_all_points:
-            if len(splited_track) == 1: # stationary point
-                displacement_point = tuple([splited_track[0][0] + 1, splited_track[0][1] + 1])
-                splited_track = tuple([splited_track[0], displacement_point])
-            # interpolate the track
-            splited_track = interpolate_trajectory(splited_track, model_length)
-            splited_track = splited_track[:model_length]
-            if len(splited_track) < model_length:
-                splited_track = splited_track + [splited_track[-1]] * (model_length -len(splited_track))
-            for i in range(model_length - 1):
-                start_point = splited_track[i]
-                end_point = splited_track[i+1]
-                motionbrush[i][int(start_point[1])][int(start_point[0])][0] = end_point[0] - start_point[0]
-                motionbrush[i][int(start_point[1])][int(start_point[0])][1] = end_point[1] - start_point[1]   
-
-        return motionbrush 
+        motionbrush=load_motionbrush_from_tracking_points_without_model(model_length, width, height, tracking_points)
+        return (motionbrush,) 
 
 class LoadMotionBrushFromOpticalFlowDirectory:
     @classmethod
@@ -935,12 +1181,96 @@ class CompositeMotionBrush:
     CATEGORY = "DragNUWA"
     def run_inference(self, model, motion_brush_layer0, motion_brush_layer1, mode):
         results = motion_brush_layer0 #torch.zeros(model.model_length - 1, model.height, model.width, 2) ##input points
-        for i in range(model.model_length - 1):
+        for i in range(model.model_length):
             for x in range(0,model.width):
+                masked=False
                 for y in range(0,model.height):
-                    if float(motion_brush_layer1[i][y][x][0])>0 or float(motion_brush_layer1[i][y][x][1])>0:
+                    premasked=masked
+                    masked=False
+                    if abs(float(motion_brush_layer1[i][y][x][0]))>0.0001 or abs(float(motion_brush_layer1[i][y][x][1]))>0.0001:
+                        masked=True
+                    elif premasked and y+1<model.height:
+                        y1max=model.height
+                        if y+50<y1max:
+                            y1max=y+50
+                        for y1 in range(y+1,y1max):
+                            if abs(float(motion_brush_layer1[i][y1][x][0]))>0.0001 or abs(float(motion_brush_layer1[i][y1][x][1]))>0.0001:
+                                masked=True
+                    if masked:
                         results[i][y][x][0]=motion_brush_layer1[i][y][x][0]
                         results[i][y][x][1]=motion_brush_layer1[i][y][x][1]
+                    else:
+                        results[i][y][x][0]=motion_brush_layer0[i][y][x][0]
+                        results[i][y][x][1]=motion_brush_layer0[i][y][x][1]
+
+        return (results,) 
+
+class CompositeMotionBrushWithoutModel:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "motion_brush_layer0": ("MotionBrush",),
+                "motion_brush_layer1": ("MotionBrush",),
+                "mode": (CompositeMotionBrushMode,{"default":"override"}),
+            }
+        }
+        
+    RETURN_TYPES = ("MotionBrush",)
+    FUNCTION = "run_inference"
+    CATEGORY = "DragNUWA"
+    def run_inference(self, motion_brush_layer0, motion_brush_layer1, mode):
+        #print(motion_brush_layer0.shape)
+        #print(motion_brush_layer1.shape)
+        model_length=motion_brush_layer0.shape[0]
+        height=motion_brush_layer0.shape[1]
+        width=motion_brush_layer0.shape[2]
+        results = motion_brush_layer0 #torch.zeros(model.model_length - 1, model.height, model.width, 2) ##input points
+        #print(f'{motion_brush_layer0}')
+        #print(f'{motion_brush_layer1}')
+        for i in range(model_length):
+            xmasked=False
+            for x in range(0,width):
+                xpremasked=xmasked
+                xmasked=False
+
+                masked=False
+                for y in range(0,height):
+                    premasked=masked
+                    masked=False
+                    
+                    if abs(float(motion_brush_layer1[i][y][x][0]))>0.0001 or abs(float(motion_brush_layer1[i][y][x][1]))>0.0001:
+                        masked=True
+                        xmasked=True
+                    elif premasked and y+1<height:
+                        y1max=height
+                        if y+50<y1max:
+                            y1max=y+50
+                        for y1 in range(y+1,y1max):
+                            if abs(float(motion_brush_layer1[i][y1][x][0]))>0.0001 or abs(float(motion_brush_layer1[i][y1][x][1]))>0.0001:
+                                masked=True
+                                xmasked=True
+                    if masked:
+                        #print(f'{i}:{x}:{y}:{masked}')
+                        #print(f'{motion_brush_layer1[i][y][x][0]}:{motion_brush_layer1[i][y][x][1]}')
+                        results[i][y][x][0]=motion_brush_layer1[i][y][x][0]
+                        results[i][y][x][1]=motion_brush_layer1[i][y][x][1]
+                    else:
+                        if xpremasked and x+1<width:
+                            x1max=width
+                            if x+50<x1max:
+                                x1max=x+50
+                            for x1 in range(x+1,x1max):
+                                if abs(float(motion_brush_layer1[i][y][x1][0]))>0.0001 or abs(float(motion_brush_layer1[i][y][x1][1]))>0.0001:
+                                    masked=True
+                                    xmasked=True
+                        if masked:
+                            results[i][y][x][0]=motion_brush_layer1[i][y][x][0]
+                            results[i][y][x][1]=motion_brush_layer1[i][y][x][1]
+                        else:
+                            results[i][y][x][0]=motion_brush_layer0[i][y][x][0]
+                            results[i][y][x][1]=motion_brush_layer0[i][y][x][1]
+                        #print(f'{motion_brush_layer1[i][y][x][0]}-{motion_brush_layer1[i][y][x][1]}')
 
         return (results,) 
 
@@ -954,8 +1284,10 @@ NODE_CLASS_MAPPINGS = {
     "Load MotionBrush From Tracking Points Without Model": LoadMotionBrushFromTrackingPointsWithoutModel,
     "DragNUWA Run MotionBrush": DragNUWARunMotionBrush,
     "BrushMotion":BrushMotion,
-    "InstantMotionBrush":InstantMotionBrush,
+    "InstantCameraMotionBrush":InstantCameraMotionBrush,
+    "InstantObjectMotionBrush":InstantObjectMotionBrush,
     "CompositeMotionBrush":CompositeMotionBrush,
+    "CompositeMotionBrushWithoutModel":CompositeMotionBrushWithoutModel,
     "Load Pose KeyPoints": LoadPoseKeyPoints,
     "Split Tracking Points": SplitTrackingPoints,
     "Get Last Image":GetLastImage,
