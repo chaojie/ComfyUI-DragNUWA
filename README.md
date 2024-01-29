@@ -16,10 +16,6 @@ smaller and faster fp16 model: [dragnuwa-svd-pruned.fp16.safetensors](https://hu
 
 For chinese users: `wget https://hf-mirror.com/benjamin-paine/dragnuwa-pruned-safetensors/resolve/main/dragnuwa-svd-pruned.fp16.safetensors` 不能直接在浏览器下载，或者参照 https://hf-mirror.com/ 官方使用说明
 
-## Nodes
-
-Two nodes `Load CheckPoint DragNUWA` & `DragNUWA Run`
-
 ## Tools
 
 [Motion Traj Tool](https://chaojie.github.io/ComfyUI-DragNUWA/tools/draw.html) Generate motion trajectories
@@ -37,9 +33,15 @@ Two nodes `Load CheckPoint DragNUWA` & `DragNUWA Run`
 https://github.com/chaojie/ComfyUI-DragNUWA/blob/main/workflow.json
 
 
-2. auto traj video generation (working on)
+2. InstantCameraMotionBrush & InstantObjectMotionBrush
 
-one flow: video -> dwpose -> keypoints -> trajectory -> DragNUWA (dragposecontrol animateanyone)
+InstantCameraMotionBrush Node Generate zoomin/zoomout/left/right/up/bottom camera motion brush
+
+InstantObjectMotionBrush Node Generate zoomin/zoomout/left/right/up/bottom object motion brush (by draw mask on object)
+
+<img src="assets/instantmotionbrush.png" raw=true>
+
+https://github.com/chaojie/ComfyUI-DragNUWA/blob/main/workflow_InstantMotionBrush.json
 
 
 3. optical flow workflow
