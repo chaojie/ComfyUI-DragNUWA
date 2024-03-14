@@ -26,7 +26,6 @@ from einops import rearrange, repeat
 import torch.distributed as dist
 from torchvision import datasets, transforms, utils
 
-logging.getLogger().setLevel(logging.WARNING)
 simplefilter(action='ignore', category=FutureWarning)
 
 def get_logger(filename=None):
